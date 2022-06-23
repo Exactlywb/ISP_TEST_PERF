@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# Here we're going to compare match percentage of lbr traces 
+# with different perf periods
+
+echo --------------------------
+echo ONLY TLB_MISSES PERIOD FROM 10 TO 100
+echo --------------------------
+for ((misses_period = 10; misses_period < 110; misses_period += 10))
+do
+    sudo perf record -e iTLB-load-misses/period=$misses_period/ --call-graph lbr g++ tramp3d-v4.cpp -o test 2>nul
+    sudo perf record -e iTLB-load-misses/period=$misses_period/ --call-graph lbr g++ tramp3d-v4.cpp -o test 2>nul
+
+    sudo perf script -i perf.data > 1.txt
+    sudo perf script -i perf.data.old > 2.txt
+
+    echo period = $misses_period
+    python3 parse_cmp.py
+done
