@@ -1,3 +1,4 @@
+
 def count_empty_num_lines (lines):
     n = 0
     for i in lines:
@@ -9,12 +10,19 @@ def parse_blocks (lines):
     res = []
 
     numBlocks = count_empty_num_lines (lines) - 1
-    lines[:] = [x for x in lines if x.strip()] # delete all empty lines
-    lines[:] = [x.strip () for x in lines] # delete space symbols in end and begin of lines
+    lines = [x for x in lines if x.strip()] # delete all empty lines
+    lines = [x.strip () for x in lines] # delete space symbols in end and begin of lines
     i = 0
     blockStartNum = 0
     while i < numBlocks:
         if (lines [blockStartNum] [len (lines [blockStartNum]) - 1] == ":"): # new trace start
+            if ("g++" not in lines [blockStartNum] and "cc1plus" not in lines [blockStartNum]):
+                blockStartNum = blockStartNum + 1
+                while (lines [blockStartNum] [len (lines [blockStartNum]) - 1] != ':'):
+                    blockStartNum = blockStartNum + 1
+                i = i + 1
+                continue
+
             blockRes = []
             blockStartNum = blockStartNum + 1
             while (lines [blockStartNum] [len (lines [blockStartNum]) - 1] != ':'):
@@ -31,16 +39,17 @@ def erase_addresses (blocks):
 
     return blocks
 
-def cmp_blocks (first_blocks, second_blocks):
-    colors = [] # 0 if there is no the same block in second list
-                # 1 if there is
-    i = 0
-    while i < len (first_blocks):
-#        //print (len (first_blocks [i]))
-        colors.append (first_blocks [i] in second_blocks)
-        i = i + 1
+def cmp_blocks (a, b):
+    return sum(1 if it in b else 0 for it in a)
 
-    return colors
+def unique_blocks (blocks):
+    count = 0
+    lst = []
+    for i in blocks:
+        if i not in lst:
+            count = count + 1
+            lst.append (i)
+    return lst
 
 first_lines = open ("1.txt").readlines ()
 second_lines = open ("2.txt").readlines()
@@ -51,12 +60,16 @@ second_blocks = parse_blocks (second_lines)
 first_blocks_without_addresses = erase_addresses (first_blocks)
 second_blocks_without_addresses = erase_addresses (second_blocks)
 
-# print (first_blocks_without_addresses[0])
+unique_first_blocks = set(tuple(it) for it in first_blocks_without_addresses)
+unique_second_blocks = set(tuple(it) for it in second_blocks_without_addresses)
 
-colors = cmp_blocks (first_blocks_without_addresses, second_blocks_without_addresses)
+print (len (unique_first_blocks))
+print (len (unique_second_blocks))
 
-match = 0
-for i in colors:
-    match = match + i
+match = cmp_blocks (unique_first_blocks, unique_second_blocks)
 
-print (match / len (first_blocks))
+print (match / len (unique_first_blocks))
+
+# for i in unique_first_blocks:
+#     for j in i:
+#         print (j);
