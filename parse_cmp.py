@@ -1,92 +1,60 @@
+import argparse
+parser = argparse.ArgumentParser(description="Compare files")
+parser.add_argument("-v", default=False, action="store_true", help="Enable addition statistic")
+args = parser.parse_args()
 
-def count_empty_num_lines (lines):
-    n = 0
-    for i in lines:
-        if (i == "\n"):
-            n = n + 1;
-    return n
 
-def parse_blocks (lines):
-    res = []
+def parse_blocks_from_lines(lines):
+    lines = [x.strip() for x in lines] # delete space symbols in end and begin of lines
+    lines = [x for x in lines if len(x) > 0] # delete all empty lines
+    check = lambda s: s in ['g++', 'cc1plus'] # make lambda for filter traces
+    def block():
+        i = 0
+        N = len(lines)
+        while i < N:
+            new_block = []
+            if lines[i][-1] == ':': # new trace start
+                need_emit = check(lines[i].split()[0])
+                i += 1
+                while i < N and lines[i][-1] != ':':
+                    new_block.append(lines[i])
+                    i += 1
+                if need_emit: yield new_block
 
-    numBlocks = count_empty_num_lines (lines) - 1
-    lines = [x for x in lines if x.strip()] # delete all empty lines
-    lines = [x.strip () for x in lines] # delete space symbols in end and begin of lines
-    i = 0
-    blockStartNum = 0
-    while i < numBlocks:
-        if (lines [blockStartNum] [len (lines [blockStartNum]) - 1] == ":"): # new trace start
-            if ("g++" not in lines [blockStartNum] and "cc1plus" not in lines [blockStartNum]):
-                blockStartNum = blockStartNum + 1
-                while (lines [blockStartNum] [len (lines [blockStartNum]) - 1] != ':'):
-                    blockStartNum = blockStartNum + 1
-                i = i + 1
-                continue
+    return [it for it in block()] 
 
-            blockRes = []
-            blockStartNum = blockStartNum + 1
-            while (lines [blockStartNum] [len (lines [blockStartNum]) - 1] != ':'):
-                blockRes.append (lines [blockStartNum])
-                blockStartNum = blockStartNum + 1
-            res.append (blockRes)
-        i = i + 1
 
-    return res
+def read_blocks_from_file(filename):
+    traces = parse_blocks_from_lines(open(filename).readlines()) #read traces from file
+    for trace in traces: trace[:] = [record.partition(' ')[2] for record in trace] #erase addresses
+    return [tuple(it) for it in traces]
 
-def erase_addresses (blocks):
-    for block in blocks:
-        block [:] = [x.partition (' ')[2] for x in block]
+# Read traces from the files
+traces_A = read_blocks_from_file('1.txt')
+traces_B = read_blocks_from_file('2.txt')
+traces_all = traces_A + traces_B
+# Make sets from it
+A = set(it for it in traces_A)
+B = set(it for it in traces_B)
+# Find set intersection
+C = A & B
 
-    return blocks
+# -v flag enable addition printin
+if args.v:
+    fi = '1.txt'
+    print(f'Statistic for {fi} file')
+    print(f'Total traces from file: {len(traces_A)}')
+    print(f'Unique traces: {len(A)}')
 
-def cmp_blocks (a, b):
-    return sum(1 if it in b else 0 for it in a)
+    fi = '2.txt'
+    print(f'Statistic for {fi} file')
+    print(f'Total traces from file: {len(traces_B)}')
+    print(f'Unique traces: {len(B)}')
 
-def unique_blocks (blocks):
-    count = 0
-    lst = []
-    for i in blocks:
-        if i not in lst:
-            count = count + 1
-            lst.append (i)
-    return lst
 
-first_lines = open ("1.txt").readlines ()
-second_lines = open ("2.txt").readlines()
+total_traces = len(traces_all)
+match = sum(1 for it in traces_all if it in C)
 
-first_blocks = parse_blocks (first_lines)
-second_blocks = parse_blocks (second_lines)
-
-first_blocks_without_addresses = erase_addresses (first_blocks)     #Aorig*
-second_blocks_without_addresses = erase_addresses (second_blocks)   #Borig*
-
-unique_first_blocks = set(tuple(it) for it in first_blocks_without_addresses)   #A*
-unique_second_blocks = set(tuple(it) for it in second_blocks_without_addresses) #B*
-
-concatenate_orig = first_blocks_without_addresses + second_blocks_without_addresses #Corig* = Aorig* U Borig*
-unique_concatenate_blocks = unique_first_blocks & unique_second_blocks  #C = A* ^ B*
-
-print (len (unique_concatenate_blocks))
-
-res = list(it for it in concatenate_orig if tuple(it) in unique_concatenate_blocks)
-
-print (len (res))
-print (len (concatenate_orig))
-
-print (len (res) / len(concatenate_orig))
-
-# print (len (unique_concatenate_blocks))
-# print (len (concatenate_orig))
-
-# match = cmp_blocks (concatenate_orig, list (unique_concatenate_blocks))
-
-# print (match / len (concatenate_orig))
-
-# for i in unique_concatenate_blocks:
-#     for j in i:
-#         print (j);
-
-# for i in concatenate_orig:
-#     for j in i:
-#         print (j);
+# Count match factor
+print(f'{match/total_traces}')
 
