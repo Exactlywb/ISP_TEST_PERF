@@ -1,5 +1,7 @@
 import matplotlib.pyplot as plt
 from collections import defaultdict
+import numpy as np
+import math
 
 def get_mean(li):
     li.sort()
@@ -13,6 +15,18 @@ def make_mean(xx, yy):
     y = [get_mean(y[k]) for k in y.keys()]
 
     return x, y
+
+def count_disp(li):
+    for i in li:
+        print (i)
+    print ("===========")
+    return np.var (li)
+
+def make_dispersion(yy):
+    y = yy.copy ()
+    y = [count_disp (y [k]) for k in y.keys ()]
+
+    return y
 
 def get_avg(li):
     return sum(li)/len(li)
@@ -39,6 +53,12 @@ with open('report', 'r') as f:
         else:
             y[prev].append(100 * float(li))
 
+i = 0
+disp = make_dispersion (y)
+while (i < len (disp)):
+    print ("period = " + str (10 * (i + 1)))
+    print ("dispersion = " + str (math.sqrt (disp [i])))
+    i = i + 1
 
 xx, yy = make_mean(x,y)
 plt.scatter(xx, yy, color = 'red', label = 'Median')
