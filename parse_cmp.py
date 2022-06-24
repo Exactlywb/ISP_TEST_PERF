@@ -57,19 +57,36 @@ second_lines = open ("2.txt").readlines()
 first_blocks = parse_blocks (first_lines)
 second_blocks = parse_blocks (second_lines)
 
-first_blocks_without_addresses = erase_addresses (first_blocks)
-second_blocks_without_addresses = erase_addresses (second_blocks)
+first_blocks_without_addresses = erase_addresses (first_blocks)     #Aorig*
+second_blocks_without_addresses = erase_addresses (second_blocks)   #Borig*
 
-unique_first_blocks = set(tuple(it) for it in first_blocks_without_addresses)
-unique_second_blocks = set(tuple(it) for it in second_blocks_without_addresses)
+unique_first_blocks = set(tuple(it) for it in first_blocks_without_addresses)   #A*
+unique_second_blocks = set(tuple(it) for it in second_blocks_without_addresses) #B*
 
-print (len (unique_first_blocks))
-print (len (unique_second_blocks))
+concatenate_orig = first_blocks_without_addresses + second_blocks_without_addresses #Corig* = Aorig* U Borig*
+unique_concatenate_blocks = unique_first_blocks & unique_second_blocks  #C = A* ^ B*
 
-match = cmp_blocks (unique_first_blocks, unique_second_blocks)
+print (len (unique_concatenate_blocks))
 
-print (match / len (unique_first_blocks))
+res = list(it for it in concatenate_orig if tuple(it) in unique_concatenate_blocks)
 
-# for i in unique_first_blocks:
+print (len (res))
+print (len (concatenate_orig))
+
+print (len (res) / len(concatenate_orig))
+
+# print (len (unique_concatenate_blocks))
+# print (len (concatenate_orig))
+
+# match = cmp_blocks (concatenate_orig, list (unique_concatenate_blocks))
+
+# print (match / len (concatenate_orig))
+
+# for i in unique_concatenate_blocks:
 #     for j in i:
 #         print (j);
+
+# for i in concatenate_orig:
+#     for j in i:
+#         print (j);
+
