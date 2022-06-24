@@ -36,6 +36,7 @@ def cmp_blocks (first_blocks, second_blocks):
                 # 1 if there is
     i = 0
     while i < len (first_blocks):
+#        //print (len (first_blocks [i]))
         colors.append (first_blocks [i] in second_blocks)
         i = i + 1
 
@@ -49,6 +50,8 @@ second_blocks = parse_blocks (second_lines)
 
 first_blocks_without_addresses = erase_addresses (first_blocks)
 second_blocks_without_addresses = erase_addresses (second_blocks)
+
+# print (first_blocks_without_addresses[0])
 
 colors = cmp_blocks (first_blocks_without_addresses, second_blocks_without_addresses)
 
