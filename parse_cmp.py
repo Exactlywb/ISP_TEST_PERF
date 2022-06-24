@@ -1,3 +1,4 @@
+
 def count_empty_num_lines (lines):
     n = 0
     for i in lines:
@@ -9,8 +10,8 @@ def parse_blocks (lines):
     res = []
 
     numBlocks = count_empty_num_lines (lines) - 1
-    lines[:] = [x for x in lines if x.strip()] # delete all empty lines
-    lines[:] = [x.strip () for x in lines] # delete space symbols in end and begin of lines
+    lines = [x for x in lines if x.strip()] # delete all empty lines
+    lines = [x.strip () for x in lines] # delete space symbols in end and begin of lines
     i = 0
     blockStartNum = 0
     while i < numBlocks:
@@ -27,7 +28,7 @@ def parse_blocks (lines):
 
 def erase_addresses (blocks):
     for block in blocks:
-        block [:] = [x.partition (' ')[2] for x in block]
+        block = [x.partition (' ')[2] for x in block]
 
     return blocks
 
@@ -35,8 +36,11 @@ def cmp_blocks (first_blocks, second_blocks):
     colors = [] # 0 if there is no the same block in second list
                 # 1 if there is
     i = 0
+
+    fast = set(tuple(it) for it in second_blocks)
+
     while i < len (first_blocks):
-        colors.append (first_blocks [i] in second_blocks)
+        colors.append (tuple(first_blocks [i]) in fast)
         i = i + 1
 
     return colors
