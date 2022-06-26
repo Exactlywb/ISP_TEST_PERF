@@ -58,5 +58,9 @@ cd gcc-build && rm -rf *
 #then you need add flags to CFLAGS and CXXFLAGS in Makefile
 ```
 
+## Build gcc using rebuild_script
 
-
+```bash
+cd rebuild_script
+./rebuild_script ../../c3_reorder_plugin/ gcc-build gcc-install ../../gcc-9.4.0/
+```

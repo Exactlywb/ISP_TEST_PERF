@@ -1,0 +1,70 @@
+#!/bin/bash -e
+
+# 1) Plugin rebuild (look c3_reorder_plugin)
+# 2) GCC rebuild (no using profile)
+# 3) function order (using nm -n)
+
+function smart_mkdir () {
+
+    if [ -d "$1" ]
+    then
+        echo "$1 exists"
+    else
+        echo "$1 doesn't exist"
+        mkdir -p $1
+        echo "$1 created"
+    fi
+
+}
+
+function check_exists () {
+
+    if [ -d "$1" ]
+    then
+        echo "$1 exists"
+    else
+        echo "No $1 exists. Stop rebuilding"
+        exit
+    fi
+
+}
+
+if [ "$#" -ne 4 ]
+then
+    echo "You have to enter 4 paths"
+    exit
+fi
+
+PLUGIN_PATH=$1
+
+GCC_BUILD=$2
+GCC_INSTALL=$(realpath $3)
+
+GCC_SOURCES=$4
+
+check_exists $PLUGIN_PATH
+check_exists $GCC_SOURCES
+
+smart_mkdir $GCC_BUILD
+smart_mkdir $GCC_INSTALL
+
+SCRIPT_PATH=$(pwd)
+
+cd $SCRIPT_PATH/$PLUGIN_PATH
+make
+
+cd $SCRIPT_PATH
+
+cd $GCC_BUILD
+../${GCC_SOURCES}configure --prefix=$GCC_INSTALL --enable-languages=c,c++ --disable-werror --enable-gold --disable-multilib --disable-bootstrap
+
+# Patch for the makefile
+cp ../make.patch .
+patch < make.patch
+
+# You should change -j8 if you want to
+make -j8
+make install
+
+# Function order show
+nm -n ${GCC_INSTALL}bin/gcc > plugin_order.dat
