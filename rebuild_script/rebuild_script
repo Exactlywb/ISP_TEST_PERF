@@ -67,4 +67,4 @@ make -j8
 make install
 
 # Function order show
-nm -n ${GCC_INSTALL}bin/gcc > plugin_order.dat
+nm -n ${GCC_INSTALL}/bin/gcc > plugin_order.dat
