@@ -54,12 +54,29 @@ friend std::ostream &operator<<(std::ostream &out, const Trace &trace);
 };
 
 
+std::pair<std::string_view,std::string_view> extract_br(const std::string& str)
+{
+    auto pos = str.find('/');
+    std::string_view fi(str.data(), pos);
+
+    auto pos2 = str.find('/', pos + 1);
+    std::string_view se(str.data() + pos, pos2 - pos);
+
+    return {fi, se};
+}
+
 std::istream &operator>>(std::istream &in, Trace &trace)
 {
     std::string comm, event;
     in >> comm >> event;
     std::string jump_event;
     for(;in >> jump_event;) {
+        if (comm != "cc1plus") continue;
+
+        auto [a,b] = extract_br(jump_event);
+
+        std::cout << a << "  " << b << "\n";
+
         Jump j; char c;
         std::stringstream(jump_event) >> std::hex >> j.from >> c >> std::hex >> j.to;
         trace.push_back(j);
@@ -109,9 +126,7 @@ std::vector<Trace> execute()
         dup2(fd[READ_END], STDIN_FILENO);
         close(fd[READ_END]);
         close(fd[WRITE_END]);
-
         traces = read_traces();
-
         int status;
         waitpid(pid, &status, 0);
     }
@@ -121,6 +136,8 @@ std::vector<Trace> execute()
 
 int main()
 {
+    read_traces();
+    return 0;
     auto traces = execute();
     for(auto tr : traces) {
         std::cout << tr << '\n';
