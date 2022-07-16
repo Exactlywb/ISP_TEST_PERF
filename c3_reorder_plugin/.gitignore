@@ -1,0 +1,8 @@
+.vscode/
+build/
+*.out
+*.so
+*.data*
+*.test*
+*.script*
+*.tmp*
