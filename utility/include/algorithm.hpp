@@ -30,7 +30,11 @@ namespace FunctionReordering {
         std::vector<perfParser::LbrSample> cyclesSample_;
 
         std::vector<nmParser::nmFuncInfo> nmFunctions_;
-        // HFData::CallGraph callGraph_;
+
+        std::vector<HFData::edge *> edges_;
+        std::vector<HFData::node> nodes_;
+
+        void build_cg ();
     };
 
 }  // namespace FunctionReordering
