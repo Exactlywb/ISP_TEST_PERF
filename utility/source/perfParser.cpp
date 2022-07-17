@@ -23,9 +23,58 @@ namespace {
 
 }
 
-    std::tuple<std::string::iterator, LbrTraceType> getTraceType (const std::string& str) {
+    std::tuple<std::string, LbrTraceType> getTraceType (const std::string& str) {
 
-        
+        auto pos = str.find_first_of (' ');
+        if (pos != std::string::npos) {
+
+            std::string traceNoEvent = str.substr (pos + 1);
+            boost::trim (traceNoEvent);
+            if (boost::starts_with (str, "cycles"))
+                return {traceNoEvent, LbrTraceType::CYCLE};
+            else if (boost::starts_with (str, "iTLB-load-misses"))
+                return {traceNoEvent, LbrTraceType::TLB_MISS};
+            else
+                return {traceNoEvent, LbrTraceType::Unknown};
+
+        } else
+            return {str, LbrTraceType::EmptyEvent};
+
+
+    }
+
+namespace {
+
+    void ParseCleanTrace (const std::string& trace, const LbrTraceType& type,
+                          std::vector<perfParser::LbrSample>& samples) 
+    {
+
+        std::vector<std::string> splittedTrace;
+        boost::split (splittedTrace, trace, boost::is_any_of (" "), boost::token_compress_on);
+
+        for (auto& sample: splittedTrace)
+            if (!boost::contains (sample, "[unknown]"))
+                samples.push_back ({boost::trim_copy (sample), type});
+
+    }
+
+}
+
+    LbrSample::LbrSample (const std::string& sample, const LbrTraceType& type):
+        type_ (type)
+    {
+
+        std::vector<std::string> res;
+        boost::split (res, sample, boost::is_any_of ("/"), boost::token_compress_on);
+
+        auto findNul = res [0].find ("+0x");
+        res [0].erase (findNul, res [0].length () - findNul);
+
+        auto findFirst = res [1].find ("+0x");
+        res [1].erase (findFirst, res [1].length () - findFirst);
+
+        callerName_ = res [0];
+        calleeName_ = res [1];
 
     }
 
@@ -45,6 +94,21 @@ namespace {
             std::string curStr =
                 boost::trim_copy (traceReader.getCurrentLine ());
             auto [traceNoEvent, traceType] = getTraceType (curStr);
+
+            switch (traceType) {
+
+                case LbrTraceType::CYCLE:
+                    ParseCleanTrace (traceNoEvent, traceType, cyclesSamples);
+                    break;
+                case LbrTraceType::TLB_MISS:
+                ParseCleanTrace (traceNoEvent, traceType, tlbMissesSamples);
+                    break;
+                case LbrTraceType::Unknown:
+                    throw std::runtime_error ("Uknown perf file format");
+                case LbrTraceType::EmptyEvent:
+                    break;
+
+            }
 
             traceReader.advance ();
         }

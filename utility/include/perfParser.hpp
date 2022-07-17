@@ -4,6 +4,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/convert.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/regex.hpp>
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -68,12 +69,12 @@ namespace perfParser {
 
         Unknown,
         TLB_MISS,
-        CYCLE
+        CYCLE,
+        EmptyEvent
 
     };
 
     struct LbrSample {
-        std::uint64_t callerOffset_;
 
         std::string callerName_;
         std::string calleeName_;
@@ -87,7 +88,7 @@ namespace perfParser {
         std::vector<perfParser::LbrSample> &cyclesSamples,
         const char *perf_script_path);
 
-    std::tuple<std::string::iterator, LbrTraceType> getTraceType (const std::string& str);
+    std::tuple<std::string, LbrTraceType> getTraceType (const std::string& str);
 
 }  // namespace perfParser
 
