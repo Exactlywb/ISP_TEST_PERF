@@ -3,8 +3,6 @@
 
 namespace HFData {
 
-
-
 }
 
 #endif

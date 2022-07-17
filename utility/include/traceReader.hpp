@@ -1,8 +1,8 @@
 #ifndef _TRACE_READER_HPP__
 #define _TRACE_READER_HPP__
 
-#include <iostream>
 #include <fstream>
+#include <iostream>
 
 class TraceStream final {
     std::string currentLine_;
@@ -12,12 +12,10 @@ class TraceStream final {
     uint64_t lineNumber_ = 0;
 
 public:
-    TraceStream (const std::string &fileName)
-        : perfFile_ (fileName)
+    TraceStream (const std::string &fileName) : perfFile_ (fileName)
     {
         if (!perfFile_.is_open ())
-            throw std::runtime_error (
-                "Can't open perf script file");
+            throw std::runtime_error ("Can't open perf script file");
 
         advance ();
     }
@@ -26,8 +24,7 @@ public:
     std::string getCurrentLine () const
     {
         if (isAtEOF_)
-            throw std::runtime_error (
-                "Line iterator reaches the End-of-File!");
+            throw std::runtime_error ("Line iterator reaches the End-of-File!");
         return currentLine_;
     }
 
