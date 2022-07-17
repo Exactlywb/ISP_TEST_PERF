@@ -70,7 +70,7 @@ namespace FunctionReordering {
         }
 
         /* Insert edges_ between clusters that have a profile.  */
-        std::vector<HFData::cluster_edge *> edges_;
+        std::vector<HFData::cluster_edge *> edges;
         for (int i = 0; i < clusters.size (); i++) {
             auto node = clusters[i]->m_functions[0];
             for (auto &cs : node->callers) {
@@ -84,44 +84,73 @@ namespace FunctionReordering {
                 else {
                     auto cedge =
                         new HFData::cluster_edge (caller, callee, count);
-                    edges_.push_back (cedge);
+                    edges.push_back (cedge);
                     callee->put (caller, cedge);
                 }
             }
         }
 
-        /* Now insert all created edges_ into a heap.  */
-        struct node_compare
-        {
-            bool operator()(HFData::cluster_edge *n1, HFData::cluster_edge *n2)
-            {
-                return n1->inverted_count() > n2->inverted_count();
-            }
-        };
-        boost::heap::fibonacci_heap<
-            HFData::cluster_edge *,
-            boost::heap::compare<node_compare>
-        > heap;
+        /* Now insert all created edges into a heap.  */
+        // in original code we extract min from heap, and use inverted count
+        std::vector<HFData::cluster_edge *> heap(edges);
 
-        //heap.update();
+        auto edge_cmp = [](const HFData::cluster_edge *l, const HFData::cluster_edge *r) {
+            return l->m_count < r->m_count;
+        };
 
         /* Main loop */
-        // ......... //
+        while (!heap.empty()) {
+            std::sort(heap.begin(), heap.end(), edge_cmp);
+            auto cedge = heap.back(); // extarct edge with max weigth
+            heap.pop_back();
+
+            auto caller = cedge->m_caller;
+            auto callee = cedge->m_callee;
+
+            if (caller == callee)
+    	        continue;
+            if (caller->m_size + callee->m_size <= HFData::C3_CLUSTER_THRESHOLD)
+    	    {
+                caller->m_size += callee->m_size;
+                //caller->m_time += callee->m_time;
+
+                /* Append all cgraph_nodes from callee to caller.  */
+                for (unsigned i = 0; i < callee->m_functions.size (); i++)
+                    caller->m_functions.push_back (callee->m_functions[i]);
+
+                callee->m_functions.clear();
+
+                /* Iterate all cluster_edges of callee and add them to the caller. */
+                for (auto &it : callee->m_callers) {
+                    it.second->m_callee = caller;
+                    auto ce = caller->get(it.first);
+
+                    if (ce != nullptr)
+                        ce->m_count += it.second->m_count;
+                    else
+                        caller->put(it.first, it.second);
+                }
+            }
+        }
+
+        for (auto it = clusters.begin (); it != clusters.end (); it++) {
+            if(*it == nullptr)
+            std::cout << (size_t)*it << "\n";
+        }
 
         /* Sort the candidate clusters.  */
         std::sort (clusters.begin (),
                    clusters.end (),
-                   [&] (HFData::cluster *a, HFData::cluster *b) {
+                   [&] (HFData::cluster *a, HFData::cluster *b) -> bool {
                        auto fncounta = a->m_functions.size ();
                        auto fncountb = b->m_functions.size ();
                        if (fncounta <= 1 || fncountb <= 1)
-                           return (int)fncountb - (int)fncounta;
+                           return fncountb < fncounta;
 
                        // what is m_time? ....
                        // sreal r = b->m_time * a->m_size - a->m_time *
                        // b->m_size;
-                       int s = a->m_size - b->m_size;
-                       return s > 0 ? 1 : (s == 0 ? 0 : -1);
+                       return a->m_size < b->m_size;
                    });
 
         /* Dump function order */

@@ -10,7 +10,7 @@
 
 namespace HFData {
 
-    const int C3_CLUSTER_THRESHOLD = 1024;
+    constexpr int C3_CLUSTER_THRESHOLD = 0x1000;
 
     struct node;
 
@@ -68,17 +68,16 @@ namespace HFData {
         cluster_edge (cluster *caller, cluster *callee, uint32_t count)
             : m_caller (caller),
               m_callee (callee),
-              m_count (count),
-              m_heap_node (NULL)
+              m_count (count)
         {
         }
 
-        uint32_t inverted_count () { return UINT32_MAX - m_count; }
+        uint32_t inverted_count () const { return UINT32_MAX - m_count; }
 
         cluster *m_caller;
         cluster *m_callee;
         uint32_t m_count;
-        boost::heap::fibonacci_heap<uint64_t, cluster_edge> *m_heap_node;
+
     };
 
 }  // namespace HFData
