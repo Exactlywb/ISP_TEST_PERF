@@ -26,7 +26,8 @@ namespace FunctionReordering {
             const auto &callee = e.calleeName_;
             const auto &caller = e.callerName_;
 
-            if(f2n.find(caller) == f2n.end() || f2n.find(callee) == f2n.end()) {
+            if (f2n.find (caller) == f2n.end () ||
+                f2n.find (callee) == f2n.end ()) {
                 continue;
             }
 
@@ -92,43 +93,45 @@ namespace FunctionReordering {
 
         /* Now insert all created edges into a heap.  */
         // in original code we extract min from heap, and use inverted count
-        std::vector<HFData::cluster_edge *> heap(edges);
+        std::vector<HFData::cluster_edge *> heap (edges);
 
-        auto edge_cmp = [](const HFData::cluster_edge *l, const HFData::cluster_edge *r) {
+        auto edge_cmp = [] (const HFData::cluster_edge *l,
+                            const HFData::cluster_edge *r) {
             return l->m_count < r->m_count;
         };
 
         /* Main loop */
-        while (!heap.empty()) {
-            std::sort(heap.begin(), heap.end(), edge_cmp);
-            auto cedge = heap.back(); // extarct edge with max weigth
-            heap.pop_back();
+        while (!heap.empty ()) {
+            std::sort (heap.begin (), heap.end (), edge_cmp);
+            auto cedge = heap.back ();  // extarct edge with max weigth
+            heap.pop_back ();
 
             auto caller = cedge->m_caller;
             auto callee = cedge->m_callee;
 
             if (caller == callee)
-    	        continue;
-            if (caller->m_size + callee->m_size <= HFData::C3_CLUSTER_THRESHOLD)
-    	    {
+                continue;
+            if (caller->m_size + callee->m_size <=
+                HFData::C3_CLUSTER_THRESHOLD) {
                 caller->m_size += callee->m_size;
-                //caller->m_time += callee->m_time;
+                // caller->m_time += callee->m_time;
 
                 /* Append all cgraph_nodes from callee to caller.  */
                 for (unsigned i = 0; i < callee->m_functions.size (); i++)
                     caller->m_functions.push_back (callee->m_functions[i]);
 
-                callee->m_functions.clear();
+                callee->m_functions.clear ();
 
-                /* Iterate all cluster_edges of callee and add them to the caller. */
+                /* Iterate all cluster_edges of callee and add them to the
+                 * caller. */
                 for (auto &it : callee->m_callers) {
                     it.second->m_callee = caller;
-                    auto ce = caller->get(it.first);
+                    auto ce = caller->get (it.first);
 
                     if (ce != nullptr)
                         ce->m_count += it.second->m_count;
                     else
-                        caller->put(it.first, it.second);
+                        caller->put (it.first, it.second);
                 }
             }
         }

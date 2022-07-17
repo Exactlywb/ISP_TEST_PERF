@@ -66,9 +66,7 @@ namespace HFData {
 
     struct cluster_edge {
         cluster_edge (cluster *caller, cluster *callee, uint32_t count)
-            : m_caller (caller),
-              m_callee (callee),
-              m_count (count)
+            : m_caller (caller), m_callee (callee), m_count (count)
         {
         }
 
@@ -77,7 +75,6 @@ namespace HFData {
         cluster *m_caller;
         cluster *m_callee;
         uint32_t m_count;
-
     };
 
 }  // namespace HFData
