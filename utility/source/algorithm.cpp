@@ -26,6 +26,10 @@ namespace FunctionReordering {
             const auto &callee = e.calleeName_;
             const auto &caller = e.callerName_;
 
+            if(f2n.find(caller) == f2n.end() || f2n.find(callee) == f2n.end()) {
+                continue;
+            }
+
             auto serach_it = f2e.find ({f2n[caller], f2n[callee]});
             if (serach_it != f2e.end ()) {
                 serach_it->second->count++;
@@ -87,7 +91,19 @@ namespace FunctionReordering {
         }
 
         /* Now insert all created edges_ into a heap.  */
-        // .......................................... //
+        struct node_compare
+        {
+            bool operator()(HFData::cluster_edge *n1, HFData::cluster_edge *n2)
+            {
+                return n1->inverted_count() > n2->inverted_count();
+            }
+        };
+        boost::heap::fibonacci_heap<
+            HFData::cluster_edge *,
+            boost::heap::compare<node_compare>
+        > heap;
+
+        //heap.update();
 
         /* Main loop */
         // ......... //
