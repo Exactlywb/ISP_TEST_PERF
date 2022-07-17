@@ -149,8 +149,7 @@ namespace FunctionReordering {
 
                        // what is m_time? ....
                        // sreal r = b->m_time * a->m_size - a->m_time *
-                       // b->m_size;
-                       return a->m_size < b->m_size;
+                       return a->m_freq * a->m_size < b->m_freq * b->m_size;
                    });
 
         /* Dump function order */
