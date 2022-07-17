@@ -133,11 +133,6 @@ namespace FunctionReordering {
             }
         }
 
-        for (auto it = clusters.begin (); it != clusters.end (); it++) {
-            if(*it == nullptr)
-            std::cout << (size_t)*it << "\n";
-        }
-
         /* Sort the candidate clusters.  */
         std::sort (clusters.begin (),
                    clusters.end (),
