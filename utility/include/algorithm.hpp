@@ -4,6 +4,7 @@
 #include <fstream>
 #include "perfParser.hpp"
 #include "funcData.hpp"
+#include "nmParser.hpp"
 
 namespace FunctionReordering {
 
@@ -22,7 +23,9 @@ public:
 private:
     std::vector<perfParser::LbrSample> tlbMissesSamples_;
     std::vector<perfParser::LbrSample> cyclesSample_;
-    // HFData::FuncInfoTbl perfFuncTbl_;
+    
+    std::vector<nmParser::nmFuncInfo> nmFunctions_;
+    // HFData::CallGraph callGraph_;
 
 };
 

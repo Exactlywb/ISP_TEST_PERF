@@ -5,6 +5,7 @@ set (SOURCES
     source/main.cpp
     source/algorithm.cpp
     source/perfParser.cpp
+    source/nmParser.cpp
 )
 
 set (COMPILE_SETTINGS -O2 -Wall -Wextra -Wpedantic)

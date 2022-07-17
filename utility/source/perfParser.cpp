@@ -83,9 +83,7 @@ namespace {
         std::vector<perfParser::LbrSample> &cyclesSamples,
         const char *perf_script_path)
     {
-        perfParser::TraceStream traceReader (perf_script_path);
-        std::vector<std::pair<std::string, std::string>>
-            lbrSamplesPreRecord;
+        TraceStream traceReader (perf_script_path);
 
         while (!traceReader.isAtEOF ()) {
             while (traceReader.getCurrentLine ().empty ())
