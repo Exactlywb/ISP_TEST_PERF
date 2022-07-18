@@ -4,6 +4,50 @@
 
 namespace FunctionReordering {
 
+    void C3Reorder::build_edges_cg (
+        std::map<pointer_pair, HFData::edge *>& f2e,
+        std::unordered_map<std::string, HFData::node *>& f2n,
+        const std::vector<perfParser::LbrSample>& samples,
+        const perfParser::LbrTraceType type) {
+
+        for (auto &e : samples) {
+            if (e.type_ != type)
+                continue;
+            const auto &callee = e.calleeName_;
+            const auto &caller = e.callerName_;
+
+            if (f2n.find (caller) == f2n.end () ||
+                f2n.find (callee) == f2n.end ()) {
+                continue;
+            }
+
+            auto serach_it = f2e.find ({f2n[caller], f2n[callee]});
+            if (serach_it != f2e.end ()) {
+                if (type == perfParser::LbrTraceType::CYCLE)
+                    serach_it->second->freq++;
+                else if (type == perfParser::LbrTraceType::TLB_MISS)
+                    serach_it->second->miss++;
+                else
+                    throw std::runtime_error ("Bad samples type in CG building");
+            }
+            else {
+                auto edge = new HFData::edge;
+                edge->caller = f2n[caller];
+                edge->callee = f2n[callee];
+                if (type == perfParser::LbrTraceType::CYCLE)
+                    serach_it->second->freq = 1;
+                else if (type == perfParser::LbrTraceType::TLB_MISS)
+                    serach_it->second->miss = 1;
+                else
+                    throw std::runtime_error ("Bad samples type in CG building");
+
+                edges_.push_back (edge);
+                f2e[{f2n[caller], f2n[callee]}] = edge;
+            }
+        }
+
+    }
+
     void C3Reorder::build_cg ()
     {
         /* Declare node for each function, readed from final binary */
@@ -18,32 +62,9 @@ namespace FunctionReordering {
         }
 
         /* Iterate over all lbr samples and increment edge counter */
-        using pointer_pair = std::pair<HFData::node *, HFData::node *>;
         std::map<pointer_pair, HFData::edge *> f2e;  // pair of funcs to edge
-        for (auto &e : tlbMissesSamples_) {
-            if (e.type_ != perfParser::LbrTraceType::TLB_MISS)
-                continue;
-            const auto &callee = e.calleeName_;
-            const auto &caller = e.callerName_;
-
-            if (f2n.find (caller) == f2n.end () ||
-                f2n.find (callee) == f2n.end ()) {
-                continue;
-            }
-
-            auto serach_it = f2e.find ({f2n[caller], f2n[callee]});
-            if (serach_it != f2e.end ()) {
-                serach_it->second->count++;
-            }
-            else {
-                auto edge = new HFData::edge;
-                edge->caller = f2n[caller];
-                edge->callee = f2n[callee];
-                edge->count = 1;
-                edges_.push_back (edge);
-                f2e[{f2n[caller], f2n[callee]}] = edge;
-            }
-        }
+        build_edges_cg (f2e, f2n, cyclesSample_, perfParser::LbrTraceType::CYCLE);
+        build_edges_cg (f2e, f2n, tlbMissesSamples_, perfParser::LbrTraceType::TLB_MISS);
 
         /* After each edges was created, attach it no nodes */
         for (auto e : edges_) {
@@ -77,14 +98,16 @@ namespace FunctionReordering {
             for (auto &cs : node->callers) {
                 auto caller = (HFData::cluster *)cs->caller->aux_;
                 auto callee = (HFData::cluster *)cs->callee->aux_;
-                auto count = cs->count;
+                auto count = cs->freq;
+                auto miss = cs->miss;
 
                 auto cedge = callee->get (caller);
-                if (cedge != NULL)
+                if (cedge != NULL) {
                     cedge->m_count += count;
-                else {
+                    cedge->m_miss  += miss;
+                } else {
                     auto cedge =
-                        new HFData::cluster_edge (caller, callee, count);
+                        new HFData::cluster_edge (caller, callee, count, miss);
                     edges.push_back (cedge);
                     callee->put (caller, cedge);
                 }
