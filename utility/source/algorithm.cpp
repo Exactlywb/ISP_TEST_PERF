@@ -36,7 +36,7 @@ namespace FunctionReordering {
                 edge->callee = f2n[callee];
                 if (type == perfParser::LbrTraceType::CYCLE)
                     edge->freq = 1;
-                else if (type == perfParser::LbrTraceType::TLB_MISS) //!TODO
+                else if (type == perfParser::LbrTraceType::TLB_MISS)
                     edge->miss = 1;
                 else
                     throw std::runtime_error ("Bad samples type in CG building");
@@ -124,7 +124,6 @@ namespace FunctionReordering {
                             const HFData::cluster_edge *r) {
             return (l->m_count + l->m_miss * 800) * (r->m_caller->m_size + r->m_callee->m_size)
                     < (r->m_count + r->m_miss * 800) * (l->m_caller->m_size + l->m_callee->m_size);
-            // return (l->m_count + l->m_miss * 800) < (r->m_count + r->m_miss * 800);
         };
 
         /* Main loop */
@@ -178,7 +177,7 @@ namespace FunctionReordering {
 
                        // what is m_time? ....
                        // sreal r = b->m_time * a->m_size - a->m_time *
-                       return (a->m_freq + 800 * a->m_miss) * b->m_size < (b->m_freq + b->m_miss) * a->m_size;
+                       return (a->m_freq + 800 * a->m_miss) * b->m_size < (b->m_freq + 800 * b->m_miss) * a->m_size;
                        //Here is m_time = m_freq + 800 * m_miss;
                    });
 
