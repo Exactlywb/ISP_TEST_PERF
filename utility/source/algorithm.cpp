@@ -97,6 +97,8 @@ namespace FunctionReordering {
             auto node = clusters[i]->m_functions[0];
             for (auto &cs : node->callers) {
                 auto caller = (HFData::cluster *)cs->caller->aux_;
+                caller->m_freq += cs->freq;
+                caller->m_miss += cs->miss;
                 auto callee = (HFData::cluster *)cs->callee->aux_;
                 auto count = cs->freq;
                 auto miss = cs->miss;
@@ -120,7 +122,7 @@ namespace FunctionReordering {
 
         auto edge_cmp = [] (const HFData::cluster_edge *l,
                             const HFData::cluster_edge *r) {
-            return l->m_count < r->m_count;
+            return (l->m_count + l->m_miss * 800) < (r->m_count + r->m_miss * 800);
         };
 
         /* Main loop */
@@ -137,6 +139,8 @@ namespace FunctionReordering {
             if (caller->m_size + callee->m_size <=
                 HFData::C3_CLUSTER_THRESHOLD) {
                 caller->m_size += callee->m_size;
+                caller->m_freq += callee->m_freq;
+                caller->m_miss += callee->m_miss;
                 // caller->m_time += callee->m_time;
 
                 /* Append all cgraph_nodes from callee to caller.  */
