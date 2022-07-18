@@ -35,9 +35,9 @@ namespace FunctionReordering {
                 edge->caller = f2n[caller];
                 edge->callee = f2n[callee];
                 if (type == perfParser::LbrTraceType::CYCLE)
-                    serach_it->second->freq = 1;
+                    edge->freq = 1;
                 else if (type == perfParser::LbrTraceType::TLB_MISS)
-                    serach_it->second->miss = 1;
+                    edge->miss = 1;
                 else
                     throw std::runtime_error ("Bad samples type in CG building");
 
