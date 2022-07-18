@@ -100,16 +100,16 @@ namespace FunctionReordering {
                 caller->m_freq += cs->freq;
                 caller->m_miss += cs->miss;
                 auto callee = (HFData::cluster *)cs->callee->aux_;
-                auto count = cs->freq;
+                auto freq = cs->freq;
                 auto miss = cs->miss;
 
                 auto cedge = callee->get (caller);
                 if (cedge != NULL) {
-                    cedge->m_count += count;
+                    cedge->m_count += freq;
                     cedge->m_miss  += miss;
                 } else {
                     auto cedge =
-                        new HFData::cluster_edge (caller, callee, count, miss);
+                        new HFData::cluster_edge (caller, callee, freq, miss);
                     edges.push_back (cedge);
                     callee->put (caller, cedge);
                 }
@@ -128,7 +128,7 @@ namespace FunctionReordering {
         /* Main loop */
         while (!heap.empty ()) {
             std::sort (heap.begin (), heap.end (), edge_cmp);
-            auto cedge = heap.back ();  // extarct edge with max weigth
+            auto cedge = heap.back ();  // extract edge with max weigth
             heap.pop_back ();
 
             auto caller = cedge->m_caller;
@@ -139,8 +139,9 @@ namespace FunctionReordering {
             if (caller->m_size + callee->m_size <=
                 HFData::C3_CLUSTER_THRESHOLD) {
                 caller->m_size += callee->m_size;
-                caller->m_freq += callee->m_freq;
-                caller->m_miss += callee->m_miss;
+
+                caller->m_freq += callee->m_freq; // Instead of m_time.
+                caller->m_miss += callee->m_miss; // Same.
                 // caller->m_time += callee->m_time;
 
                 /* Append all cgraph_nodes from callee to caller.  */
@@ -155,9 +156,10 @@ namespace FunctionReordering {
                     it.second->m_callee = caller;
                     auto ce = caller->get (it.first);
 
-                    if (ce != nullptr)
+                    if (ce != nullptr) {
                         ce->m_count += it.second->m_count;
-                    else
+                        ce->m_miss += it.second->m_miss;
+                    } else
                         caller->put (it.first, it.second);
                 }
             }
@@ -174,7 +176,8 @@ namespace FunctionReordering {
 
                        // what is m_time? ....
                        // sreal r = b->m_time * a->m_size - a->m_time *
-                       return a->m_freq * a->m_size < b->m_freq * b->m_size;
+                       return (a->m_freq + 800 * a->m_miss) * a->m_size < (b->m_freq + b->m_miss) * b->m_size;
+                       //Here is m_time = m_freq + 800 * m_miss;
                    });
 
         /* Dump function order */

@@ -18,8 +18,8 @@ namespace HFData {
         node *caller{nullptr};
         node *callee{nullptr};
 
-        std::size_t freq;
-        std::size_t miss;
+        std::size_t freq = 0;
+        std::size_t miss = 0;
     };
 
     struct node {
@@ -62,8 +62,8 @@ namespace HFData {
         std::unordered_map<cluster *, cluster_edge *> m_callers;
         int m_size;
 
-        std::size_t m_freq;
-        std::size_t m_miss;
+        std::size_t m_freq = 0;
+        std::size_t m_miss = 0;
     };
 
     /* Cluster edge is an oriented edge in between two clusters.  */
@@ -78,8 +78,8 @@ namespace HFData {
 
         cluster *m_caller;
         cluster *m_callee;
-        uint32_t m_count;
-        uint32_t m_miss;
+        uint32_t m_count = 0;
+        uint32_t m_miss = 0;
     };
 
 }  // namespace HFData
