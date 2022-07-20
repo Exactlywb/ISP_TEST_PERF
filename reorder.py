@@ -6,6 +6,7 @@ branches = []
 with open('raw', 'r') as f:
     lines = [li.strip() for li in f]
 for li in lines[1:]:
+    if len(li) == 0: continue
     extract_name = lambda it: it.split('+0x')[0]
     fr, to = map(extract_name, li.split())
     branches.append([fr, to])
@@ -25,6 +26,7 @@ syms = set()
 functions = []
 with open('order', 'r') as f:
     lines = [li.strip() for li in f]
+    lines = [li for li in lines if len(li) > 0]
     lines = [li for li in lines if len(li.split()) == 8]
     for li in lines[2:]:
         _, st, sz, ty, _, _, _, name = li.split()
@@ -48,6 +50,7 @@ for b in branches:
 
 call_graph = [(call_graph[key], key) for key in call_graph.keys()]
 call_graph.sort(key = lambda it: -it[0])
+
 
 
 class Cluster:

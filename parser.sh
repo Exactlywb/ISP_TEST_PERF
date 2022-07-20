@@ -14,7 +14,7 @@ do
         if [[ ${SPLITED[1]} == "iTLB-load-misses:" ]]
         then
             len=${#SPLITED[@]}
-            for (( j=2; j < $len; j++));
+            for (( j=2; j < 3; j++));
             do
                 IFS='/' read -ra TRACE <<< ${SPLITED[$j]}
                 echo "${TRACE[0]} ${TRACE[1]}"
