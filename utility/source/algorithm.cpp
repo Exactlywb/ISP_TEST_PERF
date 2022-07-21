@@ -1,6 +1,11 @@
 #include "algorithm.hpp"
 
 #include <vector>
+#include <fstream>
+
+using pair_string = std::pair<std::string, std::string>;
+using FreqTable = std::map<pair_string, uint64_t>;
+FreqTable get_freq_table();
 
 namespace FunctionReordering {
 
@@ -10,40 +15,29 @@ namespace FunctionReordering {
         const std::vector<perfParser::LbrSample>& samples,
         const perfParser::LbrTraceType type) {
 
-        for (auto &e : samples) {
-            if (e.type_ != type)
-                continue;
-            const auto &callee = e.calleeName_;
-            const auto &caller = e.callerName_;
+        auto table = get_freq_table();
+        for (const auto &[names, count] : table) {
+            const auto &caller = names.first;
+            const auto &callee = names.second;
 
             if (f2n.find (caller) == f2n.end () ||
                 f2n.find (callee) == f2n.end ()) {
                 continue;
             }
 
-            auto serach_it = f2e.find ({f2n[caller], f2n[callee]});
-            if (serach_it != f2e.end ()) {
-                if (type == perfParser::LbrTraceType::CYCLE)
-                    serach_it->second->freq++;
-                else if (type == perfParser::LbrTraceType::TLB_MISS)
-                    serach_it->second->miss++;
-                else
-                    throw std::runtime_error ("Bad samples type in CG building");
-            }
-            else {
-                auto edge = new HFData::edge;
-                edge->caller = f2n[caller];
-                edge->callee = f2n[callee];
-                if (type == perfParser::LbrTraceType::CYCLE)
-                    edge->freq = 1;
-                else if (type == perfParser::LbrTraceType::TLB_MISS)
-                    edge->miss = 1;
-                else
-                    throw std::runtime_error ("Bad samples type in CG building");
+            auto edge = new HFData::edge;
+            edge->caller = f2n[caller];
+            edge->callee = f2n[callee];
+            if (type == perfParser::LbrTraceType::CYCLE)
+                edge->freq = count;
+            else if (type == perfParser::LbrTraceType::TLB_MISS)
+                edge->miss = count;
+            else
+                throw std::runtime_error ("Bad samples type in CG building");
 
-                edges_.push_back (edge);
-                f2e[{f2n[caller], f2n[callee]}] = edge;
-            }
+            edges_.push_back (edge);
+            f2e[{f2n[caller], f2n[callee]}] = edge;
+
         }
 
     }
@@ -64,7 +58,7 @@ namespace FunctionReordering {
         /* Iterate over all lbr samples and increment edge counter */
         std::map<pointer_pair, HFData::edge *> f2e;  // pair of funcs to edge
         build_edges_cg (f2e, f2n, cyclesSample_, perfParser::LbrTraceType::CYCLE);
-        build_edges_cg (f2e, f2n, tlbMissesSamples_, perfParser::LbrTraceType::TLB_MISS);
+        //build_edges_cg (f2e, f2n, tlbMissesSamples_, perfParser::LbrTraceType::TLB_MISS);
 
         /* After each edges was created, attach it no nodes */
         for (auto e : edges_) {
@@ -74,14 +68,19 @@ namespace FunctionReordering {
 
     void C3Reorder::run ()
     {
-        perfParser::parse_lbr_perf_data (
-            tlbMissesSamples_,
-            cyclesSample_,
-            perfPath_);  //! TODO check perf file for event + tlbMisses
+        //perfParser::parse_lbr_perf_data (
+        //    tlbMissesSamples_,
+        //    cyclesSample_,
+        //    perfPath_);  //! TODO check perf file for event + tlbMisses
         nmParser::parse_nm_data (nmFunctions_, nmPath_);
 
         /* Build cg from perf data */
         build_cg ();
+        for (auto &e : edges_) {
+            std::cout << "{from = " << e->caller->name_
+            << ", to = " << e->callee->name_ << "} -> " << e->freq << " calls;\n";
+        }
+
 
         /* Create a cluster for each function.  */
         std::vector<HFData::cluster *> clusters;
@@ -180,11 +179,12 @@ namespace FunctionReordering {
                    });
 
         /* Dump function order */
+        std::ofstream output(resPath_);
         for (auto &c : clusters) {
         //    std::cerr << "New cluster, size = " << c->m_size << " samples = " << c->m_freq << "\n";
         //    std::cerr << "Density = " << (double)c->m_freq/c->m_size << "\n";
             for (auto &func : c->m_functions) {
-                std::cerr << func->name_ << '\n';
+                output << func->name_ << '\n';
             }
         //    std::cerr << "\n\n";
         }

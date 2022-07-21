@@ -1,3 +1,7 @@
+# HOW-TO Build order for plugin
+1. Change `GCC_PATH` and `TRAM_FILE` variables in `subprocess.cpp`
+2. run make, then do `./c3_utility nm.file - order.sorted && export ORDER=(pwd)/order.sorted`
+
 # HOW-TO build gcc with plugin
 
 ## Adjust gcc-sources
