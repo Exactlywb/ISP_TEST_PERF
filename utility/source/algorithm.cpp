@@ -93,7 +93,7 @@ namespace FunctionReordering {
 
         /* Insert edges_ between clusters that have a profile.  */
         std::vector<HFData::cluster_edge *> edges;
-        for (int i = 0; i < clusters.size (); i++) {
+        for (std::size_t i = 0; i < clusters.size (); i++) {
             auto node = clusters[i]->m_functions[0];
             for (auto &cs : node->callers) {
                 auto caller = (HFData::cluster *)cs->caller->aux_;
@@ -183,9 +183,10 @@ namespace FunctionReordering {
                    });
 
         /* Dump function order */
+        std::ofstream dump (resPath_);
         for (auto &c : clusters) {
             for (auto &func : c->m_functions) {
-                std::cerr << func->name_ << '\n';
+                dump << func->name_ << std::endl;
             }
         }
 

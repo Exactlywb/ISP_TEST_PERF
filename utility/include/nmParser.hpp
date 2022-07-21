@@ -13,7 +13,7 @@ namespace nmParser {
     struct nmFuncInfo {
         std::string name_;
         std::size_t size_;
-        void *aux;
+        void *aux = nullptr;
     };
 
     void parse_nm_data (std::vector<nmFuncInfo> &nmFunctionInfo,
