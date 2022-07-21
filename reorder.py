@@ -1,18 +1,5 @@
 from collections import defaultdict
 
-
-lines = []
-branches = []
-with open('raw', 'r') as f:
-    lines = [li.strip() for li in f]
-for li in lines[1:]:
-    if len(li) == 0: continue
-    extract_name = lambda it: it.split('+0x')[0]
-    fr, to = map(extract_name, li.split())
-    branches.append([fr, to])
-print(f"Saved branches: {len(branches)}")
-
-
 class Function:
     m_name = ""
     m_size = 0
@@ -20,7 +7,6 @@ class Function:
     def __init__(self, name, size):
         self.m_name = name
         self.m_size = size
-
 lines = []
 syms = set()
 functions = []
@@ -36,6 +22,21 @@ with open('order', 'r') as f:
         syms.add(name)
 print("Symbols = ", len(syms))
 
+"""
+lines = []
+branches = []
+with open('raw', 'r') as f:
+    lines = [li.strip() for li in f]
+for li in lines[1:]:
+    if len(li) == 0: continue
+    extract_name = lambda it: it.split('+0x')[0]
+    fr, to = map(extract_name, li.split())
+    branches.append([fr, to])
+print(f"Saved branches: {len(branches)}")
+
+
+
+
 
 replace_if = lambda it: it if it in syms else "[unknown]"
 branches = [(replace_if(it[0]), replace_if(it[1])) for it in branches]
@@ -50,7 +51,13 @@ for b in branches:
 
 call_graph = [(call_graph[key], key) for key in call_graph.keys()]
 call_graph.sort(key = lambda it: -it[0])
+"""
 
+lines = []
+with open('freq.32_runs', 'r') as f:
+    for li in f: lines.append(li.strip().split())
+
+call_graph = [(int(li[2]), (li[0], li[1])) for li in lines]
 
 
 class Cluster:
@@ -88,9 +95,10 @@ class ClusterMap:
         for f in functions:
             self.m_clusters.append(Cluster(f.m_name, f.m_size))
             f2c[f.m_name] = count; count += 1
-        
+        keys = f2c.keys()
         for c in call_graph:
             cost = c[0]
+            if c[1][0] not in keys or c[1][1] not in keys: continue
             caller_id = f2c[c[1][0]]
             callee_id = f2c[c[1][1]]
             self.m_edges[callee_id].append(ClusterEdge(caller_id, callee_id, cost))

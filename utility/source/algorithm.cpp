@@ -86,7 +86,7 @@ namespace FunctionReordering {
         /* Create a cluster for each function.  */
         std::vector<HFData::cluster *> clusters;
         for (auto &node : nodes_) {
-            auto c = new HFData::cluster (&node, node.size_, 0u, 0u);
+            auto c = new HFData::cluster (&node, node.size_, 1u, 0u);
             node.aux_ = c;
             clusters.push_back (c);
         }
@@ -150,6 +150,9 @@ namespace FunctionReordering {
                     caller->m_functions.push_back (callee->m_functions[i]);
 
                 callee->m_functions.clear ();
+                callee->m_size = 0;
+                callee->m_freq = 0;
+                callee->m_miss = 0;
 
                 /* Iterate all cluster_edges of callee and add them to the
                  * caller. */
@@ -170,22 +173,20 @@ namespace FunctionReordering {
         std::sort (clusters.begin (),
                    clusters.end (),
                    [&] (HFData::cluster *a, HFData::cluster *b) -> bool {
-                       auto fncounta = a->m_functions.size ();
-                       auto fncountb = b->m_functions.size ();
-                       if (fncounta <= 1 || fncountb <= 1)
-                           return fncountb < fncounta;
-
-                       // what is m_time? ....
-                       // sreal r = b->m_time * a->m_size - a->m_time *
-                       return (a->m_freq + 800 * a->m_miss) * b->m_size < (b->m_freq + 800 * b->m_miss) * a->m_size;
-                       //Here is m_time = m_freq + 800 * m_miss;
+                       constexpr double MAX_DENSITY = 1e+8;
+                       double da = a->m_size == 0 ? MAX_DENSITY : (double)a->m_freq / (double)a->m_size;
+                       double db = b->m_size == 0 ? MAX_DENSITY : (double)b->m_freq / (double)b->m_size;
+                       return da < db;
                    });
 
         /* Dump function order */
         for (auto &c : clusters) {
+        //    std::cerr << "New cluster, size = " << c->m_size << " samples = " << c->m_freq << "\n";
+        //    std::cerr << "Density = " << (double)c->m_freq/c->m_size << "\n";
             for (auto &func : c->m_functions) {
                 std::cerr << func->name_ << '\n';
             }
+        //    std::cerr << "\n\n";
         }
 
         /* Release memory */
