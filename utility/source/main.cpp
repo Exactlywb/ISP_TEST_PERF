@@ -5,42 +5,61 @@
  * */
 
 #include <boost/filesystem.hpp>
+#include <boost/program_options.hpp>
 #include <fstream>
 #include <iostream>
+#include <tuple>
 
 #include "algorithm.hpp"
 
-static void CheckInput (const int argc, char **argv)
+static std::tuple<std::string, std::string> CheckInput (
+    const int argc, char **argv)  // readelf and
 {
-    if (argc != 4)
-        throw std::runtime_error (
-            "Wrong number of arguments. Look the input format");
+    namespace po = boost::program_options;
 
-    const boost::filesystem::path nmFilePath (argv[1]);
-    const boost::filesystem::path perfFilePath (argv[2]);
+    po::options_description desc ("Allowed options");
+    desc.add_options () ("help,h", "Show help") (
+        "readelf,r", po::value<std::string> (), "Input readelf file") (
+        "output,o", po::value<std::string> (), "Output file");
 
-    if (!boost::filesystem::exists (nmFilePath))
-        throw std::runtime_error ("No such nm file");
+    po::variables_map vm;
+    po::parsed_options parsed = po::command_line_parser (argc, argv)
+                                    .options (desc)
+                                    .allow_unregistered ()
+                                    .run ();
+    po::store (parsed, vm);
+    po::notify (vm);
 
-    if (!boost::filesystem::exists (perfFilePath))
-        throw std::runtime_error ("No such perf file");
+    std::string readelf_file;
+    std::string output_file;
+    if (vm.count ("help")) {
+        std::cout << desc << "\n";
+        return {{}, {}};
+    }
+    if (vm.count ("readelf"))
+        readelf_file = vm["readelf"].as<std::string> ();
+    if (vm.count ("output"))
+        output_file = vm["output"].as<std::string> ();
+
+    return {readelf_file, output_file};
 }
 
 /*  The input format is
 
->  ./c3_utility nm.file perf.file resultName
+>  ./c3_utility nm.file resultName
 
 */
 int main (int argc, char **argv)
 {
+    std::string readelf, output;
     try {
-        CheckInput (argc, argv);
+        std::tie (readelf, output) = CheckInput (argc, argv);
     }
     catch (std::runtime_error &err) {
         std::cerr << "[C3_UTILITY] Error: " << err.what () << std::endl;
         return -1;
     }
 
-    FunctionReordering::C3Reorder reord (argv[1], argv[2], argv[3]);
+    FunctionReordering::C3Reorder reord (readelf.c_str (), readelf.c_str ());
     reord.run ();
 }

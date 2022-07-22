@@ -1,21 +1,21 @@
 #include "algorithm.hpp"
 
-#include <vector>
 #include <fstream>
+#include <vector>
 
 using pair_string = std::pair<std::string, std::string>;
 using FreqTable = std::map<pair_string, uint64_t>;
-FreqTable get_freq_table();
+FreqTable get_freq_table ();
 
 namespace FunctionReordering {
 
     void C3Reorder::build_edges_cg (
-        std::map<pointer_pair, HFData::edge *>& f2e,
-        std::unordered_map<std::string, HFData::node *>& f2n,
-        const std::vector<perfParser::LbrSample>& samples,
-        const perfParser::LbrTraceType type) {
-
-        auto table = get_freq_table();
+        std::map<pointer_pair, HFData::edge *> &f2e,
+        std::unordered_map<std::string, HFData::node *> &f2n,
+        const std::vector<perfParser::LbrSample> &samples,
+        const perfParser::LbrTraceType type)
+    {
+        auto table = get_freq_table ();
         for (const auto &[names, count] : table) {
             const auto &caller = names.first;
             const auto &callee = names.second;
@@ -37,9 +37,7 @@ namespace FunctionReordering {
 
             edges_.push_back (edge);
             f2e[{f2n[caller], f2n[callee]}] = edge;
-
         }
-
     }
 
     void C3Reorder::build_cg ()
@@ -57,8 +55,10 @@ namespace FunctionReordering {
 
         /* Iterate over all lbr samples and increment edge counter */
         std::map<pointer_pair, HFData::edge *> f2e;  // pair of funcs to edge
-        build_edges_cg (f2e, f2n, cyclesSample_, perfParser::LbrTraceType::CYCLE);
-        //build_edges_cg (f2e, f2n, tlbMissesSamples_, perfParser::LbrTraceType::TLB_MISS);
+        build_edges_cg (
+            f2e, f2n, cyclesSample_, perfParser::LbrTraceType::CYCLE);
+        // build_edges_cg (f2e, f2n, tlbMissesSamples_,
+        // perfParser::LbrTraceType::TLB_MISS);
 
         /* After each edges was created, attach it no nodes */
         for (auto e : edges_) {
@@ -68,7 +68,7 @@ namespace FunctionReordering {
 
     void C3Reorder::run ()
     {
-        //perfParser::parse_lbr_perf_data (
+        // perfParser::parse_lbr_perf_data (
         //    tlbMissesSamples_,
         //    cyclesSample_,
         //    perfPath_);  //! TODO check perf file for event + tlbMisses
@@ -78,9 +78,9 @@ namespace FunctionReordering {
         build_cg ();
         for (auto &e : edges_) {
             std::cout << "{from = " << e->caller->name_
-            << ", to = " << e->callee->name_ << "} -> " << e->freq << " calls;\n";
+                      << ", to = " << e->callee->name_ << "} -> " << e->freq
+                      << " calls;\n";
         }
-
 
         /* Create a cluster for each function.  */
         std::vector<HFData::cluster *> clusters;
@@ -105,8 +105,9 @@ namespace FunctionReordering {
                 auto cedge = callee->get (caller);
                 if (cedge != NULL) {
                     cedge->m_count += freq;
-                    cedge->m_miss  += miss;
-                } else {
+                    cedge->m_miss += miss;
+                }
+                else {
                     auto cedge =
                         new HFData::cluster_edge (caller, callee, freq, miss);
                     edges.push_back (cedge);
@@ -121,8 +122,10 @@ namespace FunctionReordering {
 
         auto edge_cmp = [] (const HFData::cluster_edge *l,
                             const HFData::cluster_edge *r) {
-            return (l->m_count + l->m_miss * 800) * (r->m_caller->m_size + r->m_callee->m_size)
-                    < (r->m_count + r->m_miss * 800) * (l->m_caller->m_size + l->m_callee->m_size);
+            return (l->m_count + l->m_miss * 800) *
+                       (r->m_caller->m_size + r->m_callee->m_size) <
+                   (r->m_count + r->m_miss * 800) *
+                       (l->m_caller->m_size + l->m_callee->m_size);
         };
 
         /* Main loop */
@@ -140,8 +143,8 @@ namespace FunctionReordering {
                 HFData::C3_CLUSTER_THRESHOLD) {
                 caller->m_size += callee->m_size;
 
-                caller->m_freq += callee->m_freq; // Instead of m_time.
-                caller->m_miss += callee->m_miss; // Same.
+                caller->m_freq += callee->m_freq;  // Instead of m_time.
+                caller->m_miss += callee->m_miss;  // Same.
                 // caller->m_time += callee->m_time;
 
                 /* Append all cgraph_nodes from callee to caller.  */
@@ -162,7 +165,8 @@ namespace FunctionReordering {
                     if (ce != nullptr) {
                         ce->m_count += it.second->m_count;
                         ce->m_miss += it.second->m_miss;
-                    } else
+                    }
+                    else
                         caller->put (it.first, it.second);
                 }
             }
@@ -173,20 +177,25 @@ namespace FunctionReordering {
                    clusters.end (),
                    [&] (HFData::cluster *a, HFData::cluster *b) -> bool {
                        constexpr double MAX_DENSITY = 1e+8;
-                       double da = a->m_size == 0 ? MAX_DENSITY : (double)a->m_freq / (double)a->m_size;
-                       double db = b->m_size == 0 ? MAX_DENSITY : (double)b->m_freq / (double)b->m_size;
+                       double da = a->m_size == 0 ?
+                                       MAX_DENSITY :
+                                       (double)a->m_freq / (double)a->m_size;
+                       double db = b->m_size == 0 ?
+                                       MAX_DENSITY :
+                                       (double)b->m_freq / (double)b->m_size;
                        return da < db;
                    });
 
         /* Dump function order */
-        std::ofstream output(resPath_);
+        std::ofstream output (resPath_);
         for (auto &c : clusters) {
-        //    std::cerr << "New cluster, size = " << c->m_size << " samples = " << c->m_freq << "\n";
-        //    std::cerr << "Density = " << (double)c->m_freq/c->m_size << "\n";
+            //    std::cerr << "New cluster, size = " << c->m_size << " samples
+            //    = " << c->m_freq << "\n"; std::cerr << "Density = " <<
+            //    (double)c->m_freq/c->m_size << "\n";
             for (auto &func : c->m_functions) {
                 output << func->name_ << '\n';
             }
-        //    std::cerr << "\n\n";
+            //    std::cerr << "\n\n";
         }
 
         /* Release memory */

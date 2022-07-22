@@ -11,7 +11,7 @@ set (SOURCES
 
 set (COMPILE_SETTINGS -O2 -Wall -Wextra -Wpedantic)
 
-find_package (Boost 1.60 COMPONENTS filesystem REQUIRED)
+find_package (Boost 1.60 COMPONENTS program_options filesystem REQUIRED)
 
 add_executable (${PROJECT_NAME} ${SOURCES})
 target_compile_features (${PROJECT_NAME} PRIVATE cxx_std_20)

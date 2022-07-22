@@ -52,7 +52,7 @@ namespace perfParser {
                           boost::is_any_of (" "),
                           boost::token_compress_on);
             for (auto &sample : splittedTrace)
-                 if (!boost::contains (sample, "[unknown]"))
+                if (!boost::contains (sample, "[unknown]"))
                     samples.push_back ({boost::trim_copy (sample), type});
         }
 
