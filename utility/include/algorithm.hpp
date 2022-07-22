@@ -10,9 +10,9 @@
 namespace FunctionReordering {
 
     class C3Reorder final {
+        const std::string command_;
         const char *nmPath_;
         const char *resPath_;
-        const std::string command_;
         int runs_;
 
     public:

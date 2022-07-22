@@ -109,7 +109,8 @@ std::vector<Trace> execute ()
     constexpr int READ_END = 0;
     pid_t pid;
     int fd[2];
-    pipe (fd);
+    if (pipe (fd))
+        throw std::runtime_error ("Bad pipe open");
     pid = fork ();
     std::vector<Trace> traces;
     if (pid == 0) {

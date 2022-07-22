@@ -12,7 +12,8 @@ namespace FunctionReordering {
     void C3Reorder::build_edges_cg (
         std::map<pointer_pair, HFData::edge *> &f2e,
         std::unordered_map<std::string, HFData::node *> &f2n,
-        const std::vector<perfParser::LbrSample> &samples,
+        const std::vector<perfParser::LbrSample> &samples
+        __attribute__ ((unused)),
         const perfParser::LbrTraceType type)
     {
         auto table = get_freq_table (command_, runs_);
@@ -92,7 +93,9 @@ namespace FunctionReordering {
 
         /* Insert edges_ between clusters that have a profile.  */
         std::vector<HFData::cluster_edge *> edges;
-        for (int i = 0; i < clusters.size (); i++) {
+        for (std::vector<HFData::cluster_edge *>::size_type i = 0;
+             i < clusters.size ();
+             i++) {
             auto node = clusters[i]->m_functions[0];
             for (auto &cs : node->callers) {
                 auto caller = (HFData::cluster *)cs->caller->aux_;

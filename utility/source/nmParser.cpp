@@ -31,10 +31,14 @@ namespace nmParser {
 
             if (boost::starts_with (noWS[2], "0x"))
                 nmFunctionInfo.push_back (
-                    {noWS[7], boost::lexical_cast<size_t_from_hex> (noWS[2])});
+                    {noWS[7],
+                     boost::lexical_cast<size_t_from_hex> (noWS[2]),
+                     nullptr});
             else
                 nmFunctionInfo.push_back (
-                    {noWS[7], boost::lexical_cast<std::size_t> (noWS[2])});
+                    {noWS[7],
+                     boost::lexical_cast<std::size_t> (noWS[2]),
+                     nullptr});
         }
 
     }  // namespace
