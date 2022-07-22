@@ -12,15 +12,19 @@
 
 #include "algorithm.hpp"
 
-static std::tuple<std::string, std::string> CheckInput (
-    const int argc, char **argv)  // readelf and
+static std::tuple<std::string, std::string, std::string, int>
+CheckInput (  // command, readelf, output, runs number
+    const int argc,
+    char **argv)
 {
     namespace po = boost::program_options;
 
     po::options_description desc ("Allowed options");
     desc.add_options () ("help,h", "Show help") (
         "readelf,r", po::value<std::string> (), "Input readelf file") (
-        "output,o", po::value<std::string> (), "Output file");
+        "output,o", po::value<std::string> (), "Output file") (
+        "number,N", po::value<int> (), "Number of runs") (
+        "command,C", po::value<std::string> (), "Command to run");
 
     po::variables_map vm;
     po::parsed_options parsed = po::command_line_parser (argc, argv)
@@ -32,16 +36,22 @@ static std::tuple<std::string, std::string> CheckInput (
 
     std::string readelf_file;
     std::string output_file;
+    std::string command;
+    int number_of_runs = 0;
     if (vm.count ("help")) {
         std::cout << desc << "\n";
-        return {{}, {}};
+        return {{}, {}, {}, number_of_runs};
     }
     if (vm.count ("readelf"))
         readelf_file = vm["readelf"].as<std::string> ();
     if (vm.count ("output"))
         output_file = vm["output"].as<std::string> ();
+    if (vm.count ("number"))
+        number_of_runs = vm["number"].as<int> ();
+    if (vm.count ("command"))
+        command = vm["command"].as<int> ();
 
-    return {readelf_file, output_file};
+    return {command, readelf_file, output_file, number_of_runs};
 }
 
 /*  The input format is
@@ -51,15 +61,20 @@ static std::tuple<std::string, std::string> CheckInput (
 */
 int main (int argc, char **argv)
 {
-    std::string readelf, output;
+    std::string readelf, output, command;
+    int runs;
     try {
-        std::tie (readelf, output) = CheckInput (argc, argv);
+        std::tie (command, readelf, output, runs) = CheckInput (argc, argv);
+        if (readelf.empty ())
+            throw std::runtime_error ("No readelf file");
     }
     catch (std::runtime_error &err) {
         std::cerr << "[C3_UTILITY] Error: " << err.what () << std::endl;
         return -1;
     }
 
-    FunctionReordering::C3Reorder reord (readelf.c_str (), readelf.c_str ());
+    std::cerr << readelf << ", " << output << ", " << runs << std::endl;
+    FunctionReordering::C3Reorder reord (
+        command, readelf.c_str (), readelf.c_str (), runs);
     reord.run ();
 }

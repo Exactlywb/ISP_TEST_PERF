@@ -5,7 +5,7 @@
 
 using pair_string = std::pair<std::string, std::string>;
 using FreqTable = std::map<pair_string, uint64_t>;
-FreqTable get_freq_table ();
+FreqTable get_freq_table (const std::string &command, const int runs);
 
 namespace FunctionReordering {
 
@@ -15,7 +15,7 @@ namespace FunctionReordering {
         const std::vector<perfParser::LbrSample> &samples,
         const perfParser::LbrTraceType type)
     {
-        auto table = get_freq_table ();
+        auto table = get_freq_table (command_, runs_);
         for (const auto &[names, count] : table) {
             const auto &caller = names.first;
             const auto &callee = names.second;

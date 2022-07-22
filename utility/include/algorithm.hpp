@@ -11,13 +11,19 @@ namespace FunctionReordering {
 
     class C3Reorder final {
         const char *nmPath_;
-        // const char *perfPath_;
-
         const char *resPath_;
+        const std::string command_;
+        int runs_;
 
     public:
-        C3Reorder (const char *nmPath, const char *resPath = "out.txt")
-            : nmPath_ (nmPath), resPath_ (resPath)
+        C3Reorder (const std::string &command,
+                   const char *nmPath,
+                   const char *resPath = "out.txt",
+                   const int runs = 0)
+            : command_ (command),
+              nmPath_ (nmPath),
+              resPath_ (resPath),
+              runs_ (runs)
         {
         }
 

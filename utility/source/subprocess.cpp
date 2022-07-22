@@ -150,32 +150,31 @@ void update_table (FreqTable &table, const vector<Trace> &traces)
     }
 }
 
-const std::string &get_formated_command (uint64_t period)
+const std::string &get_formated_command (const std::string &command,
+                                         uint64_t period)
 {
+    if (command.empty ())
+        throw std::runtime_error ("Empty command. Nothing to run.");
+
     static std::string buf;
-    constexpr std::string_view GCC_PATH =
-        "/home/exactlywb/Desktop/ISP_RAS/gcc-install/bin/g++";
-    constexpr std::string_view TRAM_FILE =
-        "/home/exactlywb/Desktop/ISP_RAS/ISP_TEST_PERF/tramp3d-v4.cpp";
 
     std::stringstream ss;
-    ss << "perf record -e cycles/period=" << period << "/u -j call " << GCC_PATH
-       << " -w " << TRAM_FILE << " -o /dev/null";
+    ss << "perf record -e cycles/period=" << period << "/u -j call " << command;
     buf = ss.str ();
     return buf;
 }
 
-FreqTable get_freq_table ()
+FreqTable get_freq_table (const std::string &command, const int runs)
 {
-    constexpr int N_REPEAT = 16;
     FreqTable table;
-    for (int i = 0; i < N_REPEAT; i++) {
+    for (int i = 0; i < runs; i++) {
         constexpr uint64_t LOW_PERIOD = 250'000;
         constexpr uint64_t DELTA = 3'000;
         auto period = LOW_PERIOD + i * DELTA;
-        std::cout << "[" << (i + 1) << "/" << N_REPEAT
+        std::cout << "[" << (i + 1) << "/" << runs
                   << "] run, period = " << period << std::endl;
-        auto ret_code = system (get_formated_command (period).c_str ());
+        auto ret_code =
+            system (get_formated_command (command, period).c_str ());
         if (ret_code != 0) {
             throw "Perf record failed";
         }
