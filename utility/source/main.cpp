@@ -20,12 +20,14 @@ CheckInput (  // command, readelf, output, runs number
     namespace po = boost::program_options;
 
     po::options_description desc ("Allowed options");
-    desc.add_options () ("help,h", "Show help") (
-        "readelf,r", po::value<std::string> (), "Input readelf file") (
-        "output,o", po::value<std::string> (), "Output file") (
-        "number,N", po::value<int> (), "Number of runs") (
-        "command,C", po::value<std::string> (), "Command to run") (
-        "delta,D", po::value<int> (), "Set delta");
+
+    auto registartor = desc.add_options ();
+    registartor ("help,h", "Show help");
+    registartor ("readelf,r", po::value<std::string> (), "Input readelf file");
+    registartor ("output,o", po::value<std::string> (), "Output file");
+    registartor ("number,N", po::value<int> (), "Number of runs");
+    registartor ("command,C", po::value<std::string> (), "Command to run")
+    registartor ("delta,D", po::value<int> (), "Set delta");
 
     po::variables_map vm;
     po::parsed_options parsed =
