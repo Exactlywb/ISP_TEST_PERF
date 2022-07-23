@@ -10,7 +10,7 @@
 
 namespace HFData {
 
-    constexpr int C3_CLUSTER_THRESHOLD = 0x1000 * 256;
+    constexpr int C3_CLUSTER_THRESHOLD = 0x1000 * 64;
 
     struct node;
 
@@ -82,8 +82,14 @@ namespace HFData {
         {
         }
 
+        double get_cost_() const {
+            double new_dencity = (double)(m_caller->m_freq + m_callee->m_freq)/(double)(m_caller->m_size + m_callee->m_size);
+            double old_dencity = ((double)m_caller->m_freq/(double)m_caller->m_size + (double)m_callee->m_freq/(double)m_callee->m_size) * 0.5;
+            return (double)m_count * new_dencity / old_dencity;
+        }
+
         double get_cost() const {
-            return (double)m_count * (double)(m_caller->m_freq + m_callee->m_freq)/(double)(m_caller->m_size + m_callee->m_size);
+            return (double)m_count;
         }
 
         uint32_t inverted_count () const { return UINT32_MAX - m_count; }
