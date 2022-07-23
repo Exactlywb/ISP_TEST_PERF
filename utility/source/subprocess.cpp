@@ -16,8 +16,7 @@ struct Jump {
     std::string to;
     friend std::ostream &operator<< (std::ostream &out, const Jump &j)
     {
-        out << "{from = " << std::hex << j.from << "; to = " << std::hex << j.to
-            << '}';
+        out << "{from = " << std::hex << j.from << "; to = " << std::hex << j.to << '}';
         return out;
     }
 };
@@ -47,8 +46,7 @@ public:
 using pair_string = std::pair<std::string, std::string>;
 using FreqTable = std::map<pair_string, uint64_t>;
 
-std::pair<std::string_view, std::string_view> extract_br (
-    const std::string &str)
+std::pair<std::string_view, std::string_view> extract_br (const std::string &str)
 {
     auto pos = str.find ('/');
     std::string_view fi (str.data (), pos);
@@ -151,8 +149,7 @@ void update_table (FreqTable &table, const vector<Trace> &traces)
     }
 }
 
-const std::string &get_formated_command (const std::string &command,
-                                         uint64_t period)
+const std::string &get_formated_command (const std::string &command, uint64_t period)
 {
     if (command.empty ())
         throw std::runtime_error ("Empty command. Nothing to run.");
@@ -172,10 +169,9 @@ FreqTable get_freq_table (const std::string &command, const int runs)
         constexpr uint64_t LOW_PERIOD = 250'000;
         constexpr uint64_t DELTA = 127;
         auto period = LOW_PERIOD + i * DELTA;
-        std::cout << "[" << (i + 1) << "/" << runs
-                  << "] run, period = " << period << std::endl;
-        auto ret_code =
-            system (get_formated_command (command, period).c_str ());
+        std::cout << "[" << (i + 1) << "/" << runs << "] run, period = " << period
+                  << std::endl;
+        auto ret_code = system (get_formated_command (command, period).c_str ());
         if (ret_code != 0) {
             throw "Perf record failed";
         }

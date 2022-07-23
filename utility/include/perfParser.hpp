@@ -15,38 +15,37 @@
 
 namespace perfParser {
 
-    enum class PerfContent {
+enum class PerfContent {
 
-        Unknown,
-        LBR,
-        LBRStack
+    Unknown,
+    LBR,
+    LBRStack
 
-    };
+};
 
-    enum class LbrTraceType {
+enum class LbrTraceType {
 
-        Unknown,
-        TLB_MISS,
-        CYCLE,
-        EmptyEvent
+    Unknown,
+    TLB_MISS,
+    CYCLE,
+    EmptyEvent
 
-    };
+};
 
-    struct LbrSample {
-        std::string callerName_;
-        std::string calleeName_;
+struct LbrSample {
+    std::string callerName_;
+    std::string calleeName_;
 
-        LbrTraceType type_;
+    LbrTraceType type_;
 
-        LbrSample (const std::string &sample, const LbrTraceType &type);
-    };
+    LbrSample (const std::string &sample, const LbrTraceType &type);
+};
 
-    void parse_lbr_perf_data (
-        std::vector<perfParser::LbrSample> &tlbMissesSamples,
-        std::vector<perfParser::LbrSample> &cyclesSamples,
-        const char *perf_script_path);
+void parse_lbr_perf_data (std::vector<perfParser::LbrSample> &tlbMissesSamples,
+                          std::vector<perfParser::LbrSample> &cyclesSamples,
+                          const char *perf_script_path);
 
-    std::tuple<std::string, LbrTraceType> getTraceType (const std::string &str);
+std::tuple<std::string, LbrTraceType> getTraceType (const std::string &str);
 
 }  // namespace perfParser
 

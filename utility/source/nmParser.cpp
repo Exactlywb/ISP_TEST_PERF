@@ -2,80 +2,74 @@
 
 namespace nmParser {
 
-    namespace {
+namespace {
 
-        class size_t_from_hex {  // To use with boost::lexical_cast for hex
-                                 // numbers
-            std::size_t value;
+class size_t_from_hex {  // To use with boost::lexical_cast for hex
+                         // numbers
+    std::size_t value;
 
-        public:
-            operator std::size_t () const
-            {
-                return static_cast<std::size_t> (value);
-            }
+public:
+    operator std::size_t () const { return static_cast<std::size_t> (value); }
 
-            friend std::istream &operator>> (std::istream &in,
-                                             size_t_from_hex &outValue)
-            {
-                in >> std::hex >> outValue.value;
-                return in;
-            }
-        };
-
-        void parseCurNMStr (std::vector<nmFuncInfo> &nmFunctionInfo,
-                            const std::string &str)
-        {
-            uint64_t count = 1;
-            std::vector<std::string> noWS;
-            boost::split (
-                noWS, str, boost::is_any_of (" "), boost::token_compress_on);
-
-            if (boost::starts_with (noWS[2], "0x"))
-                nmFunctionInfo.push_back (
-                    {noWS[7],
-                     boost::lexical_cast<size_t_from_hex> (noWS[2]),
-                     boost::lexical_cast<size_t_from_hex> (noWS[1]),
-                     count,
-                     nullptr});
-            else
-                nmFunctionInfo.push_back (
-                    {noWS[7],
-                     boost::lexical_cast<std::size_t> (noWS[2]),
-                     boost::lexical_cast<size_t_from_hex> (noWS[1]),
-                     count,
-                     nullptr});
-            count++;
-        }
-
-    }  // namespace
-
-    void parse_nm_data (std::vector<nmFuncInfo> &nmFunctionInfo,
-                        const char *nmPath)
+    friend std::istream &operator>> (std::istream &in, size_t_from_hex &outValue)
     {
-        TraceStream traceReader (nmPath);
-
-        while (!traceReader.isAtEOF ()) {
-            while (traceReader.getCurrentLine ().empty ())
-                traceReader.advance ();
-
-            std::string curStr = traceReader.getCurrentLine ();
-            boost::trim (curStr);
-
-            parseCurNMStr (nmFunctionInfo, curStr);
-
-            traceReader.advance ();
-        }
-
-        std::cout << "Before removing dublicates size = " << nmFunctionInfo.size() << "\n";
-        // remove copies
-        using FuncInfo = nmFuncInfo;
-        auto &FI = nmFunctionInfo;
-        std::sort(FI.begin(), FI.end(), [](const FuncInfo &a, const FuncInfo &b) {
-            return a.interal_addr_ < b.interal_addr_;
-        });
-        auto last = std::unique(FI.begin(), FI.end(), [](const FuncInfo &a, const FuncInfo &b){return a.interal_addr_ == b.interal_addr_;});
-        FI.erase(last, FI.end());
-        std::cout << "After removing dublicates size = " << nmFunctionInfo.size() << "\n";
+        in >> std::hex >> outValue.value;
+        return in;
     }
+};
+
+void parseCurNMStr (std::vector<nmFuncInfo> &nmFunctionInfo, const std::string &str)
+{
+    uint64_t count = 1;
+    std::vector<std::string> noWS;
+    boost::split (noWS, str, boost::is_any_of (" "), boost::token_compress_on);
+
+    if (boost::starts_with (noWS[2], "0x"))
+        nmFunctionInfo.push_back ({noWS[7],
+                                   boost::lexical_cast<size_t_from_hex> (noWS[2]),
+                                   boost::lexical_cast<size_t_from_hex> (noWS[1]),
+                                   count,
+                                   nullptr});
+    else
+        nmFunctionInfo.push_back ({noWS[7],
+                                   boost::lexical_cast<std::size_t> (noWS[2]),
+                                   boost::lexical_cast<size_t_from_hex> (noWS[1]),
+                                   count,
+                                   nullptr});
+    count++;
+}
+
+}  // namespace
+
+void parse_nm_data (std::vector<nmFuncInfo> &nmFunctionInfo, const char *nmPath)
+{
+    TraceStream traceReader (nmPath);
+
+    while (!traceReader.isAtEOF ()) {
+        while (traceReader.getCurrentLine ().empty ())
+            traceReader.advance ();
+
+        std::string curStr = traceReader.getCurrentLine ();
+        boost::trim (curStr);
+
+        parseCurNMStr (nmFunctionInfo, curStr);
+
+        traceReader.advance ();
+    }
+
+    std::cout << "Before removing dublicates size = " << nmFunctionInfo.size () << "\n";
+    // remove copies
+    using FuncInfo = nmFuncInfo;
+    auto &FI = nmFunctionInfo;
+    std::sort (FI.begin (), FI.end (), [] (const FuncInfo &a, const FuncInfo &b) {
+        return a.interal_addr_ < b.interal_addr_;
+    });
+    auto last =
+        std::unique (FI.begin (), FI.end (), [] (const FuncInfo &a, const FuncInfo &b) {
+            return a.interal_addr_ == b.interal_addr_;
+        });
+    FI.erase (last, FI.end ());
+    std::cout << "After removing dublicates size = " << nmFunctionInfo.size () << "\n";
+}
 
 }  // namespace nmParser
