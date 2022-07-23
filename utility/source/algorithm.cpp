@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <fstream>
+#include <algorithm>
 #include <vector>
 
 using pair_string = std::pair<std::string, std::string>;
@@ -94,89 +95,78 @@ void C3Reorder::run ()
     /* Create a cluster for each function.  */
     std::vector<HFData::cluster *> clusters;
     for (auto &node : nodes_) {
-        auto c = new HFData::cluster (&node, node.size_, 0u, 0u);
-        node.aux_ = c;
-        clusters.push_back (c);
+        clusters.push_back (new HFData::cluster());
+        clusters.back()->m_functions.push_back(&node);
     }
 
-    /* Insert edges_ between clusters that have a profile.  */
-    std::vector<HFData::cluster_edge *> edges;
-    for (auto &c : clusters) {
-        auto node = c->m_functions[0];
-        for (auto &cs : node->callers) {
-            auto caller = (HFData::cluster *)cs->caller->aux_;
-            caller->m_freq += cs->freq;
-            caller->m_miss += cs->miss;
-            auto callee = (HFData::cluster *)cs->callee->aux_;
-            auto freq = cs->freq;
-            auto miss = cs->miss;
+    std::size_t THRESHOLD = HFData::C3_CLUSTER_THRESHOLD;
+    for (int iter = 0; iter < 10; iter++)
+    {
 
-            auto cedge = callee->get (caller);
-            if (cedge != nullptr) {
-                cedge->m_count += freq;
-                cedge->m_miss += miss;
-            }
-            else {
-                auto cedge = new HFData::cluster_edge (caller, callee, freq, miss);
-                edges.push_back (cedge);
-                callee->put (caller, cedge);
+        /* This clusters size from the functions */
+        for (auto &cluster : clusters) {
+            cluster->reset_metrics();
+            for (auto function_node : cluster->m_functions) {
+                function_node->aux_ = cluster;
+                cluster->m_size += function_node->size_;
             }
         }
-    }
 
-    /* Now insert all created edges into a heap.  */
-    // in original code we extract min from heap, and use inverted count
-    std::vector<HFData::cluster_edge *> heap (edges);
+        /* Insert edges between clusters that have a profile.  */
+        std::vector<HFData::cluster_edge *> edges;
+        for (auto &cluster : clusters) {
+            for (auto function_node : cluster->m_functions) {
+                for (auto &edge : function_node->callers) {
+                    auto caller = (HFData::cluster *)edge->caller->aux_;
+                    auto callee = (HFData::cluster *)edge->callee->aux_;
+                    auto freq = edge->freq;
+                    auto miss = edge->miss;
 
-    auto edge_cmp = [] (const HFData::cluster_edge *l, const HFData::cluster_edge *r) {
-        return l->get_cost () < r->get_cost ();
-    };
+                    caller->m_freq += freq;
+                    caller->m_miss += miss;
 
-    /* Main loop */
-    while (!heap.empty ()) {
-        std::sort (heap.begin (), heap.end (), edge_cmp);
-        auto cedge = heap.back ();  // extract edge with max weigth
-        heap.pop_back ();
-
-        auto caller = cedge->m_caller;
-        auto callee = cedge->m_callee;
-
-        if (caller == callee)
-            continue;
-        if (caller->m_size + callee->m_size <= HFData::C3_CLUSTER_THRESHOLD) {
-            caller->m_size += callee->m_size;
-
-            caller->m_freq += callee->m_freq;  // Instead of m_time.
-            caller->m_miss += callee->m_miss;  // Same.
-            // caller->m_time += callee->m_time;
-
-            /* Append all cgraph_nodes from callee to caller.  */
-            for (unsigned i = 0; i < callee->m_functions.size (); i++) {
-                caller->m_functions.push_back (callee->m_functions[i]);
-            }
-
-            callee->m_functions.clear ();
-            callee->m_size = 0;
-            callee->m_freq = 0;
-            callee->m_miss = 0;
-
-            /* Iterate all cluster_edges of callee and add them to the
-             * caller. */
-            for (auto &it : callee->m_callers) {
-                it.second->m_callee = caller;
-                auto ce = caller->get (it.first);
-
-                if (ce != nullptr) {
-                    ce->m_count += it.second->m_count;
-                    ce->m_miss += it.second->m_miss;
+                    auto cedge = callee->get (caller);
+                    if (cedge != nullptr) {
+                        cedge->m_count += freq;
+                        cedge->m_miss += miss;
+                    } else {
+                        auto cedge = new HFData::cluster_edge (caller, callee, freq, miss);
+                        edges.push_back (cedge);
+                        callee->put (caller, cedge);
+                    }
                 }
-                else
-                    caller->put (it.first, it.second);
             }
-
-            callee->m_callers.clear ();
         }
+
+        /* Now insert all created edges into a heap.  */
+        std::vector<HFData::cluster_edge *> heap (edges);
+
+        auto edge_cmp = [] (const HFData::cluster_edge *l, const HFData::cluster_edge *r) {
+            return l->get_cost () < r->get_cost ();
+        };
+
+        /* Main loop */
+        while (!heap.empty ()) {
+            std::iter_swap (std::max_element(heap.begin (), heap.end (), edge_cmp), std::prev (heap.end ()));
+            auto cedge = heap.back ();  // extract edge with max weigth
+            heap.pop_back ();
+
+            auto caller = cedge->m_caller;
+            auto callee = cedge->m_callee;
+
+            if (caller == callee)
+                continue;
+
+            if (caller->m_size + callee->m_size > THRESHOLD)
+                continue;
+
+            HFData::cluster::merge_to_caller(caller, callee);
+            
+        }
+
+        THRESHOLD *= 2;
     }
+
 
     /* Sort the candidate clusters.  */
     std::sort (

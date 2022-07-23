@@ -7,9 +7,10 @@ set (SOURCES
     source/perfParser.cpp
     source/nmParser.cpp
     source/subprocess.cpp
+    source/FunctionData.cpp
 )
 
-set (COMPILE_SETTINGS -O2 -Wall -Wextra -Wpedantic)
+set (COMPILE_SETTINGS -O0 -g -Wall -Wextra -Wpedantic)
 
 find_package (Boost 1.60 COMPONENTS program_options filesystem REQUIRED)
 

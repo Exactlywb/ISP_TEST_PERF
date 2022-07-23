@@ -7,21 +7,13 @@
 #include <iostream>
 #include <unordered_map>
 #include <vector>
+#include <tuple>
 
 namespace HFData {
 
 constexpr int C3_CLUSTER_THRESHOLD = 0x1000 * 64;
 
-struct node;
-
-struct edge {
-    node *caller{nullptr};
-    node *callee{nullptr};
-
-    std::size_t freq = 0;
-    std::size_t miss = 0;
-};
-
+struct edge;
 struct node {
     std::string name_;
     std::size_t size_;
@@ -35,35 +27,54 @@ struct node {
     std::vector<edge *> callers;
 };
 
-struct cluster_edge;
+struct edge {
+    node *caller{nullptr};
+    node *callee{nullptr};
 
+    std::size_t freq = 0;
+    std::size_t miss = 0;
+};
+
+
+
+struct cluster_edge;
 struct cluster {
-    cluster (node *node, int size, std::size_t freq, std::size_t miss)
-        : m_functions (), m_callers (), m_size (size), m_freq (freq), m_miss (miss)
-    {
-        m_functions.push_back (node);
-    }
+
+    cluster() {} 
 
     std::vector<node *> m_functions;
+    std::unordered_map<cluster *, cluster_edge *> m_callers;
+    std::size_t m_size = 0;
+    std::size_t m_freq = 0;
+    std::size_t m_miss = 0;
 
+    void put (cluster *caller, cluster_edge *edge) { m_callers[caller] = edge; }
     cluster_edge *get (cluster *caller)
     {
         auto search_it = m_callers.find (caller);
         return search_it == m_callers.end () ? nullptr : search_it->second;
     }
 
-    void put (cluster *caller, cluster_edge *edge) { m_callers[caller] = edge; }
+    void reset_metrics() 
+    {
+        m_size = 0;
+        m_freq = 0;
+        m_miss = 0;
+        m_callers.clear();
+    }
 
-    std::unordered_map<cluster *, cluster_edge *> m_callers;
-    int m_size;
+    static void merge_to_caller(cluster *caller, cluster *callee);
 
-    std::size_t m_freq = 0;
-    std::size_t m_miss = 0;
 };
 
 /* Cluster edge is an oriented edge in between two clusters.  */
 
 struct cluster_edge {
+    cluster *m_caller;
+    cluster *m_callee;
+    uint32_t m_count = 0;
+    uint32_t m_miss = 0;
+
     cluster_edge (cluster *caller, cluster *callee, uint32_t count, uint32_t miss)
         : m_caller (caller), m_callee (callee), m_count (count), m_miss (miss)
     {
@@ -80,13 +91,6 @@ struct cluster_edge {
     }
 
     double get_cost () const { return (double)m_count; }
-
-    uint32_t inverted_count () const { return UINT32_MAX - m_count; }
-
-    cluster *m_caller;
-    cluster *m_callee;
-    uint32_t m_count = 0;
-    uint32_t m_miss = 0;
 };
 
 }  // namespace HFData
