@@ -162,13 +162,12 @@ const std::string &get_formated_command (const std::string &command, uint64_t pe
     return buf;
 }
 
-FreqTable get_freq_table (const std::string &command, const int runs)
+FreqTable get_freq_table (const std::string &command, const int runs, const int delta)
 {
     FreqTable table;
     for (int i = 0; i < runs; i++) {
         constexpr uint64_t LOW_PERIOD = 250'000;
-        constexpr uint64_t DELTA = 127;
-        auto period = LOW_PERIOD + i * DELTA;
+        auto period = LOW_PERIOD + i * delta;
         std::cout << "[" << (i + 1) << "/" << runs << "] run, period = " << period
                   << std::endl;
         auto ret_code = system (get_formated_command (command, period).c_str ());
