@@ -42,7 +42,6 @@ namespace FunctionReordering {
 
         using pointer_pair = std::pair<HFData::node *, HFData::node *>;
         void build_edges_cg (
-            std::map<pointer_pair, HFData::edge *> &f2e,
             std::unordered_map<std::string, HFData::node *> &f2n,
             const std::vector<perfParser::LbrSample> &samples,
             const perfParser::LbrTraceType type);

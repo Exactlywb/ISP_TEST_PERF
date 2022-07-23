@@ -170,7 +170,7 @@ FreqTable get_freq_table (const std::string &command, const int runs)
     FreqTable table;
     for (int i = 0; i < runs; i++) {
         constexpr uint64_t LOW_PERIOD = 250'000;
-        constexpr uint64_t DELTA = 3'000;
+        constexpr uint64_t DELTA = 5'000;
         auto period = LOW_PERIOD + i * DELTA;
         std::cout << "[" << (i + 1) << "/" << runs
                   << "] run, period = " << period << std::endl;

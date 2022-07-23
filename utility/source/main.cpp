@@ -49,7 +49,7 @@ CheckInput (  // command, readelf, output, runs number
     if (vm.count ("number"))
         number_of_runs = vm["number"].as<int> ();
     if (vm.count ("command"))
-        command = vm["command"].as<int> ();
+        command = vm["command"].as<std::string> ();
 
     return {command, readelf_file, output_file, number_of_runs};
 }
@@ -73,8 +73,10 @@ int main (int argc, char **argv)
         return -1;
     }
 
-    std::cerr << readelf << ", " << output << ", " << runs << std::endl;
+    std::cout << "File with symbols: " << readelf << std::endl;
+    std::cout << "Output file: " << output << std::endl;
+    std::cout << "Total runs: " << runs << std::endl;
     FunctionReordering::C3Reorder reord (
-        command, readelf.c_str (), readelf.c_str (), runs);
+        command, readelf.c_str (), output.c_str (), runs);
     reord.run ();
 }

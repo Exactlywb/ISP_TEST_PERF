@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <vector>
+#include <filesystem>
 
 using pair_string = std::pair<std::string, std::string>;
 using FreqTable = std::map<pair_string, uint64_t>;
@@ -10,7 +11,6 @@ FreqTable get_freq_table (const std::string &command, const int runs);
 namespace FunctionReordering {
 
     void C3Reorder::build_edges_cg (
-        std::map<pointer_pair, HFData::edge *> &f2e,
         std::unordered_map<std::string, HFData::node *> &f2n,
         const std::vector<perfParser::LbrSample> &samples
         __attribute__ ((unused)),
@@ -37,7 +37,6 @@ namespace FunctionReordering {
                 throw std::runtime_error ("Bad samples type in CG building");
 
             edges_.push_back (edge);
-            f2e[{f2n[caller], f2n[callee]}] = edge;
         }
     }
 
@@ -54,12 +53,32 @@ namespace FunctionReordering {
             f2n[node.name_] = &node;
         }
 
-        /* Iterate over all lbr samples and increment edge counter */
-        std::map<pointer_pair, HFData::edge *> f2e;  // pair of funcs to edge
-        build_edges_cg (
-            f2e, f2n, cyclesSample_, perfParser::LbrTraceType::CYCLE);
-        // build_edges_cg (f2e, f2n, tlbMissesSamples_,
-        // perfParser::LbrTraceType::TLB_MISS);
+
+        if (!std::filesystem::exists("saved.edges")) {
+            std::cout << "Cant fild saved file with profile, do perf ....\n";
+            /* Iterate over all lbr samples and increment edge counter */
+            build_edges_cg (f2n, cyclesSample_, perfParser::LbrTraceType::CYCLE);
+            // build_edges_cg (f2e, f2n, tlbMissesSamples_, perfParser::LbrTraceType::TLB_MISS);
+            std::ofstream output ("saved.edges");
+            for (auto &e : edges_) {
+                output << e->caller->name_ << "/" << e->callee->name_ << "/" << e->freq << "\n";
+            }
+        } else {
+            std::cout << "Found saved profile, use it\n";
+            std::ifstream in("saved.edges");
+            std::string buf;
+            while(std::getline(in, buf)) {
+                boost::trim (buf);
+                std::vector<std::string> noWS;
+                boost::split (noWS, buf, boost::is_any_of ("/"), boost::token_compress_on);
+                auto edge = new HFData::edge;
+                edge->caller = f2n[noWS[0]];
+                edge->callee = f2n[noWS[1]];
+
+                edge->freq = boost::lexical_cast<std::size_t>(noWS[2]);
+                edges_.push_back(edge);
+            }
+        }
 
         /* After each edges was created, attach it no nodes */
         for (auto e : edges_) {
@@ -69,34 +88,23 @@ namespace FunctionReordering {
 
     void C3Reorder::run ()
     {
-        // perfParser::parse_lbr_perf_data (
-        //    tlbMissesSamples_,
-        //    cyclesSample_,
-        //    perfPath_);  //! TODO check perf file for event + tlbMisses
         nmParser::parse_nm_data (nmFunctions_, nmPath_);
 
         /* Build cg from perf data */
         build_cg ();
-        for (auto &e : edges_) {
-            std::cout << "{from = " << e->caller->name_
-                      << ", to = " << e->callee->name_ << "} -> " << e->freq
-                      << " calls;\n";
-        }
 
         /* Create a cluster for each function.  */
         std::vector<HFData::cluster *> clusters;
         for (auto &node : nodes_) {
-            auto c = new HFData::cluster (&node, node.size_, 1u, 0u);
+            auto c = new HFData::cluster (&node, node.size_, 0u, 0u);
             node.aux_ = c;
             clusters.push_back (c);
         }
 
         /* Insert edges_ between clusters that have a profile.  */
         std::vector<HFData::cluster_edge *> edges;
-        for (std::vector<HFData::cluster_edge *>::size_type i = 0;
-             i < clusters.size ();
-             i++) {
-            auto node = clusters[i]->m_functions[0];
+        for (auto &c : clusters) {
+            auto node = c->m_functions[0];
             for (auto &cs : node->callers) {
                 auto caller = (HFData::cluster *)cs->caller->aux_;
                 caller->m_freq += cs->freq;
@@ -106,13 +114,11 @@ namespace FunctionReordering {
                 auto miss = cs->miss;
 
                 auto cedge = callee->get (caller);
-                if (cedge != NULL) {
+                if (cedge != nullptr) {
                     cedge->m_count += freq;
                     cedge->m_miss += miss;
-                }
-                else {
-                    auto cedge =
-                        new HFData::cluster_edge (caller, callee, freq, miss);
+                } else {
+                    auto cedge = new HFData::cluster_edge (caller, callee, freq, miss);
                     edges.push_back (cedge);
                     callee->put (caller, cedge);
                 }
@@ -125,10 +131,7 @@ namespace FunctionReordering {
 
         auto edge_cmp = [] (const HFData::cluster_edge *l,
                             const HFData::cluster_edge *r) {
-            return (l->m_count + l->m_miss * 800) *
-                       (r->m_caller->m_size + r->m_callee->m_size) <
-                   (r->m_count + r->m_miss * 800) *
-                       (l->m_caller->m_size + l->m_callee->m_size);
+            return l->get_cost() < r->get_cost();
         };
 
         /* Main loop */
@@ -142,8 +145,7 @@ namespace FunctionReordering {
 
             if (caller == callee)
                 continue;
-            if (caller->m_size + callee->m_size <=
-                HFData::C3_CLUSTER_THRESHOLD) {
+            if (caller->m_size + callee->m_size <= HFData::C3_CLUSTER_THRESHOLD) {
                 caller->m_size += callee->m_size;
 
                 caller->m_freq += callee->m_freq;  // Instead of m_time.
@@ -151,8 +153,10 @@ namespace FunctionReordering {
                 // caller->m_time += callee->m_time;
 
                 /* Append all cgraph_nodes from callee to caller.  */
-                for (unsigned i = 0; i < callee->m_functions.size (); i++)
+                for (unsigned i = 0; i < callee->m_functions.size (); i++) {
                     caller->m_functions.push_back (callee->m_functions[i]);
+                }
+
 
                 callee->m_functions.clear ();
                 callee->m_size = 0;
@@ -172,6 +176,8 @@ namespace FunctionReordering {
                     else
                         caller->put (it.first, it.second);
                 }
+
+                callee->m_callers.clear();
             }
         }
 
@@ -192,13 +198,16 @@ namespace FunctionReordering {
         /* Dump function order */
         std::ofstream output (resPath_);
         for (auto &c : clusters) {
-            //    std::cerr << "New cluster, size = " << c->m_size << " samples
-            //    = " << c->m_freq << "\n"; std::cerr << "Density = " <<
-            //    (double)c->m_freq/c->m_size << "\n";
+                if (!c->m_functions.empty()) {
+                    std::cerr << "New cluster, size = " << c->m_size << " samples"
+                    "= " << c->m_freq << "\n"; std::cerr << "Density = " <<
+                    (double)c->m_freq/c->m_size << "\n";
+                }
             for (auto &func : c->m_functions) {
                 output << func->name_ << '\n';
+                std::cerr << func->name_ << '\n';
             }
-            //    std::cerr << "\n\n";
+            //std::cerr << "\n\n";
         }
 
         /* Release memory */
