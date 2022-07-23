@@ -11,10 +11,7 @@ FreqTable get_freq_table (const std::string &command, const int runs, const int 
 
 namespace FunctionReordering {
 
-void C3Reorder::build_edges_cg (std::unordered_map<std::string, HFData::node *> &f2n,
-                                const std::vector<perfParser::LbrSample> &samples
-                                __attribute__ ((unused)),
-                                const perfParser::LbrTraceType type)
+void C3Reorder::build_edges_cg (std::unordered_map<std::string, HFData::node *> &f2n)
 {
     auto table = get_freq_table (command_, runs_, delta_);
     for (const auto &[names, count] : table) {
@@ -28,12 +25,7 @@ void C3Reorder::build_edges_cg (std::unordered_map<std::string, HFData::node *> 
         auto edge = new HFData::edge;
         edge->caller = f2n[caller];
         edge->callee = f2n[callee];
-        if (type == perfParser::LbrTraceType::CYCLE)
-            edge->freq = count;
-        else if (type == perfParser::LbrTraceType::TLB_MISS)
-            edge->miss = count;
-        else
-            throw std::runtime_error ("Bad samples type in CG building");
+        edge->freq = count;
 
         edges_.push_back (edge);
     }
@@ -41,6 +33,8 @@ void C3Reorder::build_edges_cg (std::unordered_map<std::string, HFData::node *> 
 
 void C3Reorder::build_cg ()
 {
+    const std::string SAVED_PROFILE_FILE{"saved.edges"};
+
     /* Declare node for each function, readed from final binary */
     for (const auto &func : nmFunctions_) {
         nodes_.push_back ({func.name_, func.size_, nullptr});
@@ -52,24 +46,34 @@ void C3Reorder::build_cg ()
         f2n[node.name_] = &node;
     }
 
-    if (!std::filesystem::exists ("saved.edges")) {
+    if (!std::filesystem::exists (SAVED_PROFILE_FILE)) {
         std::cout << "Cant fild saved file with profile, do perf ....\n";
-        /* Iterate over all lbr samples and increment edge counter */
-        build_edges_cg (f2n, cyclesSample_, perfParser::LbrTraceType::CYCLE);
-        // build_edges_cg (f2e, f2n, tlbMissesSamples_, perfParser::LbrTraceType::TLB_MISS);
-        std::ofstream output ("saved.edges");
+        build_edges_cg (f2n);
+        std::ofstream output (SAVED_PROFILE_FILE);
         for (auto &e : edges_) {
             output << e->caller->name_ << "/" << e->callee->name_ << "/" << e->freq << "\n";
         }
     }
     else {
         std::cout << "Found saved profile, use it\n";
-        std::ifstream in ("saved.edges");
+        std::ifstream in (SAVED_PROFILE_FILE);
         std::string buf;
         while (std::getline (in, buf)) {
             boost::trim (buf);
             std::vector<std::string> noWS;
             boost::split (noWS, buf, boost::is_any_of ("/"), boost::token_compress_on);
+
+            auto caller = f2n[noWS[0]];
+            auto callee = f2n[noWS[1]];
+            if (caller == nullptr) {
+                std::cerr << "Not found node for function: " << noWS[0] << "\n";
+                return;
+            }
+            if (callee == nullptr) {
+                std::cerr << "Not found node for function: " << noWS[1] << "\n";
+                return;
+            }
+
             auto edge = new HFData::edge;
             edge->caller = f2n[noWS[0]];
             edge->callee = f2n[noWS[1]];
@@ -92,108 +96,75 @@ void C3Reorder::run ()
     /* Build cg from perf data */
     build_cg ();
 
-    /* Create a cluster for each function.  */
-    std::vector<HFData::cluster *> clusters;
-    for (auto &node : nodes_) {
-        clusters.push_back (new HFData::cluster());
-        clusters.back()->m_functions.push_back(&node);
+    /* Create a cluster for each function, and accociate function to cluster.  */
+    std::vector<HFData::cluster *> clusters(nodes_.size());
+    for (std::size_t i = 0; i < clusters.size(); i++) {
+        clusters[i] = new HFData::cluster();
+        clusters[i]->add_function_node(&nodes_[i]);
+        clusters[i]->ID = i;
+        nodes_[i].aux_ = clusters[i];
     }
 
-    std::size_t THRESHOLD = HFData::C3_CLUSTER_THRESHOLD;
-    for (int iter = 0; iter < 10; iter++)
-    {
+    /* Insert edges between clusters that have a profile. */
+    std::vector<HFData::cluster_edge *> cedges;
+    for (auto &cluster : clusters) {
+        for (auto function_node : cluster->m_functions) {
+            for (auto &edge : function_node->callers) {
+                auto [caller_cluster, callee_cluster, freq, miss] = edge->unpack_data();
 
-        /* This clusters size from the functions */
-        for (auto &cluster : clusters) {
-            cluster->reset_metrics();
-            for (auto function_node : cluster->m_functions) {
-                function_node->aux_ = cluster;
-                cluster->m_size += function_node->size_;
-            }
-        }
+                caller_cluster->m_freq += freq;
+                caller_cluster->m_miss += miss;
 
-        /* Insert edges between clusters that have a profile.  */
-        std::vector<HFData::cluster_edge *> edges;
-        for (auto &cluster : clusters) {
-            for (auto function_node : cluster->m_functions) {
-                for (auto &edge : function_node->callers) {
-                    auto caller = (HFData::cluster *)edge->caller->aux_;
-                    auto callee = (HFData::cluster *)edge->callee->aux_;
-                    auto freq = edge->freq;
-                    auto miss = edge->miss;
-
-                    caller->m_freq += freq;
-                    caller->m_miss += miss;
-
-                    auto cedge = callee->get (caller);
-                    if (cedge != nullptr) {
-                        cedge->m_count += freq;
-                        cedge->m_miss += miss;
-                    } else {
-                        auto cedge = new HFData::cluster_edge (caller, callee, freq, miss);
-                        edges.push_back (cedge);
-                        callee->put (caller, cedge);
-                    }
+                auto cedge = callee_cluster->get (caller_cluster);
+                if (cedge != nullptr) {
+                    cedge->m_count += freq;
+                    cedge->m_miss += miss;
+                } else {
+                    auto cedge = new HFData::cluster_edge (caller_cluster, callee_cluster, freq, miss);
+                    cedges.push_back (cedge);
+                    cedge->ID = cedges.size();
+                    callee_cluster->put (caller_cluster, cedge);
                 }
             }
         }
+    }
 
-        /* Now insert all created edges into a heap.  */
-        std::vector<HFData::cluster_edge *> heap (edges);
+    /* Now insert all created edges into a heap.  */
+    auto &heap = cedges;
+    auto extract_max = [&heap]() {
+        auto &compare = HFData::cluster_edge::comparator;
+        auto max_it = std::max_element(heap.begin (), heap.end (), compare);
+        std::iter_swap(max_it, std::prev(heap.end()));
+        auto cedge = heap.back();
+        heap.pop_back();
+        return cedge;
+    };
 
-        auto edge_cmp = [] (const HFData::cluster_edge *l, const HFData::cluster_edge *r) {
-            return l->get_cost () < r->get_cost ();
-        };
+    /* Main loop */
+    while (!heap.empty ()) {
+        auto cedge = extract_max();
 
-        /* Main loop */
-        while (!heap.empty ()) {
-            std::iter_swap (std::max_element(heap.begin (), heap.end (), edge_cmp), std::prev (heap.end ()));
-            auto cedge = heap.back ();  // extract edge with max weigth
-            heap.pop_back ();
+        auto caller = cedge->m_caller;
+        auto callee = cedge->m_callee;
 
-            auto caller = cedge->m_caller;
-            auto callee = cedge->m_callee;
+        if (caller == callee)
+            continue;
 
-            if (caller == callee)
-                continue;
+        if (caller->m_size + callee->m_size > HFData::C3_CLUSTER_THRESHOLD)
+            continue;
 
-            if (caller->m_size + callee->m_size > THRESHOLD)
-                continue;
-
-            HFData::cluster::merge_to_caller(caller, callee);
-            
-        }
-
-        THRESHOLD *= 2;
+        HFData::cluster::merge_to_caller(caller, callee);
     }
 
 
     /* Sort the candidate clusters.  */
-    std::sort (
-        clusters.begin (),
-        clusters.end (),
-        [&] (HFData::cluster *a, HFData::cluster *b) -> bool {
-            constexpr double MAX_DENSITY = 1e+8;
-            double da = a->m_size == 0 ? MAX_DENSITY : (double)a->m_freq / (double)a->m_size;
-            double db = b->m_size == 0 ? MAX_DENSITY : (double)b->m_freq / (double)b->m_size;
-            return da < db;
-        });
+    std::sort (clusters.begin (), clusters.end (), HFData::cluster::comparator);
 
     /* Dump function order */
     std::ofstream output (resPath_);
     for (auto &c : clusters) {
-        if (!c->m_functions.empty ()) {
-            std::cerr << "New cluster, size = " << c->m_size
-                      << " samples"
-                         "= "
-                      << c->m_freq << "\n";
-            std::cerr << "Density = " << (double)c->m_freq / c->m_size << "\n";
-        }
-        for (auto &func : c->m_functions) {
-            output << func->name_ << '\n';
-            std::cerr << func->name_ << '\n';
-        }
-        // std::cerr << "\n\n";
+        c->print(std::cerr, false); /* only_funcs = false */
+        c->print(output, true);     /* only_funcs = true */
     }
 
     /* Release memory */

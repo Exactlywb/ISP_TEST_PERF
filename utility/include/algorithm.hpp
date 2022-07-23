@@ -44,9 +44,7 @@ private:
     void build_cg ();
 
     using pointer_pair = std::pair<HFData::node *, HFData::node *>;
-    void build_edges_cg (std::unordered_map<std::string, HFData::node *> &f2n,
-                         const std::vector<perfParser::LbrSample> &samples,
-                         const perfParser::LbrTraceType type);
+    void build_edges_cg (std::unordered_map<std::string, HFData::node *> &f2n);
 };
 
 }  // namespace FunctionReordering
