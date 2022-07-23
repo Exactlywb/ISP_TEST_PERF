@@ -13,6 +13,8 @@ namespace nmParser {
     struct nmFuncInfo {
         std::string name_;
         std::size_t size_;
+        uint64_t interal_addr_;
+        uint64_t ID;
         void *aux;
     };
 

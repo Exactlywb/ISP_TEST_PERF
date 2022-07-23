@@ -51,16 +51,9 @@ namespace perfParser {
                           trace,
                           boost::is_any_of (" "),
                           boost::token_compress_on);
-
-            if (type == perfParser::LbrTraceType::TLB_MISS) {
-                if (!boost::contains (splittedTrace [0], "[unknown]"))
-                    samples.push_back ({boost::trim_copy (splittedTrace [0]), type});
-            } else {
-                for (auto &sample : splittedTrace)
-                    if (!boost::contains (sample, "[unknown]"))
-                        samples.push_back ({boost::trim_copy (sample), type});
-            }
-
+            for (auto &sample : splittedTrace)
+                if (!boost::contains (sample, "[unknown]"))
+                    samples.push_back ({boost::trim_copy (sample), type});
         }
 
     }  // namespace

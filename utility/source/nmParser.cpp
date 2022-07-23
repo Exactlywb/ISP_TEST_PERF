@@ -25,16 +25,26 @@ namespace nmParser {
         void parseCurNMStr (std::vector<nmFuncInfo> &nmFunctionInfo,
                             const std::string &str)
         {
+            uint64_t count = 1;
             std::vector<std::string> noWS;
             boost::split (
                 noWS, str, boost::is_any_of (" "), boost::token_compress_on);
 
             if (boost::starts_with (noWS[2], "0x"))
                 nmFunctionInfo.push_back (
-                    {noWS[7], boost::lexical_cast<size_t_from_hex> (noWS[2])});
+                    {noWS[7],
+                     boost::lexical_cast<size_t_from_hex> (noWS[2]),
+                     boost::lexical_cast<size_t_from_hex> (noWS[1]),
+                     count,
+                     nullptr});
             else
                 nmFunctionInfo.push_back (
-                    {noWS[7], boost::lexical_cast<std::size_t> (noWS[2])});
+                    {noWS[7],
+                     boost::lexical_cast<std::size_t> (noWS[2]),
+                     boost::lexical_cast<size_t_from_hex> (noWS[1]),
+                     count,
+                     nullptr});
+            count++;
         }
 
     }  // namespace
@@ -55,6 +65,17 @@ namespace nmParser {
 
             traceReader.advance ();
         }
+
+        std::cout << "Before removing dublicates size = " << nmFunctionInfo.size() << "\n";
+        // remove copies
+        using FuncInfo = nmFuncInfo;
+        auto &FI = nmFunctionInfo;
+        std::sort(FI.begin(), FI.end(), [](const FuncInfo &a, const FuncInfo &b) {
+            return a.interal_addr_ < b.interal_addr_;
+        });
+        auto last = std::unique(FI.begin(), FI.end(), [](const FuncInfo &a, const FuncInfo &b){return a.interal_addr_ == b.interal_addr_;});
+        FI.erase(last, FI.end());
+        std::cout << "After removing dublicates size = " << nmFunctionInfo.size() << "\n";
     }
 
 }  // namespace nmParser

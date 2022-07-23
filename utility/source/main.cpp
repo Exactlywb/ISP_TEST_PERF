@@ -5,42 +5,78 @@
  * */
 
 #include <boost/filesystem.hpp>
+#include <boost/program_options.hpp>
 #include <fstream>
 #include <iostream>
+#include <tuple>
 
 #include "algorithm.hpp"
 
-static void CheckInput (const int argc, char **argv)
+static std::tuple<std::string, std::string, std::string, int>
+CheckInput (  // command, readelf, output, runs number
+    const int argc,
+    char **argv)
 {
-    if (argc != 4)
-        throw std::runtime_error (
-            "Wrong number of arguments. Look the input format");
+    namespace po = boost::program_options;
 
-    const boost::filesystem::path nmFilePath (argv[1]);
-    const boost::filesystem::path perfFilePath (argv[2]);
+    po::options_description desc ("Allowed options");
+    desc.add_options () ("help,h", "Show help") (
+        "readelf,r", po::value<std::string> (), "Input readelf file") (
+        "output,o", po::value<std::string> (), "Output file") (
+        "number,N", po::value<int> (), "Number of runs") (
+        "command,C", po::value<std::string> (), "Command to run");
 
-    if (!boost::filesystem::exists (nmFilePath))
-        throw std::runtime_error ("No such nm file");
+    po::variables_map vm;
+    po::parsed_options parsed = po::command_line_parser (argc, argv)
+                                    .options (desc)
+                                    .allow_unregistered ()
+                                    .run ();
+    po::store (parsed, vm);
+    po::notify (vm);
 
-    if (!boost::filesystem::exists (perfFilePath))
-        throw std::runtime_error ("No such perf file");
+    std::string readelf_file;
+    std::string output_file;
+    std::string command;
+    int number_of_runs = 0;
+    if (vm.count ("help")) {
+        std::cout << desc << "\n";
+        return {{}, {}, {}, number_of_runs};
+    }
+    if (vm.count ("readelf"))
+        readelf_file = vm["readelf"].as<std::string> ();
+    if (vm.count ("output"))
+        output_file = vm["output"].as<std::string> ();
+    if (vm.count ("number"))
+        number_of_runs = vm["number"].as<int> ();
+    if (vm.count ("command"))
+        command = vm["command"].as<std::string> ();
+
+    return {command, readelf_file, output_file, number_of_runs};
 }
 
 /*  The input format is
 
->  ./c3_utility nm.file perf.file resultName
+>  ./c3_utility nm.file resultName
 
 */
 int main (int argc, char **argv)
 {
+    std::string readelf, output, command;
+    int runs;
     try {
-        CheckInput (argc, argv);
+        std::tie (command, readelf, output, runs) = CheckInput (argc, argv);
+        if (readelf.empty ())
+            throw std::runtime_error ("No readelf file");
     }
     catch (std::runtime_error &err) {
         std::cerr << "[C3_UTILITY] Error: " << err.what () << std::endl;
         return -1;
     }
 
-    FunctionReordering::C3Reorder reord (argv[1], argv[2], argv[3]);
+    std::cout << "File with symbols: " << readelf << std::endl;
+    std::cout << "Output file: " << output << std::endl;
+    std::cout << "Total runs: " << runs << std::endl;
+    FunctionReordering::C3Reorder reord (
+        command, readelf.c_str (), output.c_str (), runs);
     reord.run ();
 }

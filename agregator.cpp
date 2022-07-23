@@ -3,6 +3,7 @@
 #include <sstream>
 #include <array>
 #include <vector>
+#include <map>
 
 #include <unistd.h>
 #include <sys/types.h>
@@ -11,8 +12,8 @@
 using namespace std;
 
 struct Jump {
-    uint64_t from;
-    uint64_t to;
+    std::string from;
+    std::string to;
     friend std::ostream& operator<<(std::ostream &out, const Jump& j)
     {
         out << "{from = " << std::hex << j.from << "; to = " << std::hex << j.to << '}';
@@ -54,15 +55,41 @@ friend std::ostream &operator<<(std::ostream &out, const Trace &trace);
 };
 
 
+using pair_string = std::pair<std::string, std::string>;
+using FreqTable = std::map<pair_string, uint64_t>;
+
+
+std::pair<std::string_view,std::string_view> extract_br(const std::string& str)
+{
+    auto pos = str.find('/');
+    std::string_view fi(str.data(), pos);
+
+    auto pos2 = str.find('/', pos + 1);
+    std::string_view se(str.data() + pos + 1, pos2 - pos - 1);
+
+    // drop +0x...
+
+    fi = fi.substr(0, fi.find("+0x"));
+    se = se.substr(0, se.find("+0x"));
+
+    return {fi, se};
+}
+
 std::istream &operator>>(std::istream &in, Trace &trace)
 {
     std::string comm, event;
     in >> comm >> event;
     std::string jump_event;
     for(;in >> jump_event;) {
-        Jump j; char c;
-        std::stringstream(jump_event) >> std::hex >> j.from >> c >> std::hex >> j.to;
+        if (comm != "cc1plus") continue;
+
+        auto [a,b] = extract_br(jump_event);
+
+        Jump j;
+        j.from = a;
+        j.to = b;
         trace.push_back(j);
+
     }
     return in;
 }
@@ -102,28 +129,43 @@ std::vector<Trace> execute()
         dup2(fd[WRITE_END], STDOUT_FILENO);
         close(fd[READ_END]);
         close(fd[WRITE_END]);
-        execlp("perf", "perf", "script", "-F", "event,brstack,comm", NULL);
+        execlp("perf", "perf", "script", "-F", "comm,event,brstacksym", "--no-demangle", NULL);
         std::cerr << "Failed perf\n";
         exit(1);
     } else {
         dup2(fd[READ_END], STDIN_FILENO);
         close(fd[READ_END]);
         close(fd[WRITE_END]);
-
         traces = read_traces();
-
         int status;
         waitpid(pid, &status, 0);
     }
-
     return traces;
+}
+
+void update_table(FreqTable& table, const vector<Trace>& traces) {
+    for (const auto &tr : traces) {
+        for (int i = 0; i < tr.size(); i++) {
+            auto &j = tr[i];
+            if(j.from != "[unknown]" && j.to != "[unknown]") {
+            table[{j.from, j.to}]++;
+            }
+        }
+    }
 }
 
 int main()
 {
-    auto traces = execute();
-    for(auto tr : traces) {
-        std::cout << tr << '\n';
+    constexpr int N_REPEAT = 32;
+    FreqTable table;
+    for (int i = 0; i < N_REPEAT; i++) {
+        system("perf record -e cycles:u -j call ~/gcc_patched/gcc-install-final/bin/g++ -w tramp3d-v4.cpp -o /dev/null");
+        auto traces = execute();
+        std::cerr << "[" << (i+1) << "/" << N_REPEAT << "] ... done\n";
+        update_table(table, traces);
+    }
+    for (const auto &[names, freq] : table) {
+        std::cout << names.first << " " << names.second << " " << freq << "\n";
     }
 }
 

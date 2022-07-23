@@ -10,7 +10,7 @@
 
 namespace HFData {
 
-    constexpr int C3_CLUSTER_THRESHOLD = 0x1000;
+    constexpr int C3_CLUSTER_THRESHOLD = 0x1000 * 64;
 
     struct node;
 
@@ -27,8 +27,10 @@ namespace HFData {
         std::size_t size_;
         void *aux_;
 
-        node (const std::string& name, std::size_t size, void *aux):
-            name_ (name), size_ (size), aux_ (aux) {}
+        node (const std::string &name, std::size_t size, void *aux)
+            : name_ (name), size_ (size), aux_ (aux)
+        {
+        }
 
         std::vector<edge *> callers;
     };
@@ -69,9 +71,25 @@ namespace HFData {
     /* Cluster edge is an oriented edge in between two clusters.  */
 
     struct cluster_edge {
-        cluster_edge (cluster *caller, cluster *callee, uint32_t count, uint32_t miss)
-            : m_caller (caller), m_callee (callee), m_count (count), m_miss (miss)
+        cluster_edge (cluster *caller,
+                      cluster *callee,
+                      uint32_t count,
+                      uint32_t miss)
+            : m_caller (caller),
+              m_callee (callee),
+              m_count (count),
+              m_miss (miss)
         {
+        }
+
+        double get_cost_() const {
+            double new_dencity = (double)(m_caller->m_freq + m_callee->m_freq)/(double)(m_caller->m_size + m_callee->m_size);
+            double old_dencity = ((double)m_caller->m_freq/(double)m_caller->m_size + (double)m_callee->m_freq/(double)m_callee->m_size) * 0.5;
+            return (double)m_count * new_dencity / old_dencity;
+        }
+
+        double get_cost() const {
+            return (double)m_count;
         }
 
         uint32_t inverted_count () const { return UINT32_MAX - m_count; }
