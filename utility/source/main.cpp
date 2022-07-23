@@ -12,7 +12,7 @@
 
 #include "algorithm.hpp"
 
-static std::tuple<std::string, std::string, std::string, int>
+static std::tuple<std::string, std::string, std::string, int, int>
 CheckInput (  // command, readelf, output, runs number
     const int argc,
     char **argv)
@@ -24,7 +24,8 @@ CheckInput (  // command, readelf, output, runs number
         "readelf,r", po::value<std::string> (), "Input readelf file") (
         "output,o", po::value<std::string> (), "Output file") (
         "number,N", po::value<int> (), "Number of runs") (
-        "command,C", po::value<std::string> (), "Command to run");
+        "command,C", po::value<std::string> (), "Command to run") (
+        "delta,D", po::value<int> (), "Set delta");
 
     po::variables_map vm;
     po::parsed_options parsed =
@@ -36,9 +37,10 @@ CheckInput (  // command, readelf, output, runs number
     std::string output_file;
     std::string command;
     int number_of_runs = 0;
+    int delta = 0;
     if (vm.count ("help")) {
         std::cout << desc << "\n";
-        return {{}, {}, {}, number_of_runs};
+        return {{}, {}, {}, number_of_runs, 0};
     }
     if (vm.count ("readelf"))
         readelf_file = vm["readelf"].as<std::string> ();
@@ -48,8 +50,10 @@ CheckInput (  // command, readelf, output, runs number
         number_of_runs = vm["number"].as<int> ();
     if (vm.count ("command"))
         command = vm["command"].as<std::string> ();
+    if (vm.count ("delta"))
+        delta = vm["delta"].as<int> ();
 
-    return {command, readelf_file, output_file, number_of_runs};
+    return {command, readelf_file, output_file, number_of_runs, delta};
 }
 
 /*  The input format is
@@ -60,9 +64,10 @@ CheckInput (  // command, readelf, output, runs number
 int main (int argc, char **argv)
 {
     std::string readelf, output, command;
-    int runs;
+    int runs = 0;
+    int delta = 0;
     try {
-        std::tie (command, readelf, output, runs) = CheckInput (argc, argv);
+        std::tie (command, readelf, output, runs, delta) = CheckInput (argc, argv);
         if (readelf.empty ())
             throw std::runtime_error ("No readelf file");
     }
@@ -74,6 +79,7 @@ int main (int argc, char **argv)
     std::cout << "File with symbols: " << readelf << std::endl;
     std::cout << "Output file: " << output << std::endl;
     std::cout << "Total runs: " << runs << std::endl;
-    FunctionReordering::C3Reorder reord (command, readelf.c_str (), output.c_str (), runs);
+    FunctionReordering::C3Reorder reord (
+        command, readelf.c_str (), output.c_str (), runs, delta);
     reord.run ();
 }

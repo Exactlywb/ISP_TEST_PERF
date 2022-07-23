@@ -6,7 +6,7 @@
 
 using pair_string = std::pair<std::string, std::string>;
 using FreqTable = std::map<pair_string, uint64_t>;
-FreqTable get_freq_table (const std::string &command, const int runs);
+FreqTable get_freq_table (const std::string &command, const int runs, const int delta);
 
 namespace FunctionReordering {
 
@@ -15,7 +15,7 @@ void C3Reorder::build_edges_cg (std::unordered_map<std::string, HFData::node *> 
                                 __attribute__ ((unused)),
                                 const perfParser::LbrTraceType type)
 {
-    auto table = get_freq_table (command_, runs_);
+    auto table = get_freq_table (command_, runs_, delta_);
     for (const auto &[names, count] : table) {
         const auto &caller = names.first;
         const auto &callee = names.second;

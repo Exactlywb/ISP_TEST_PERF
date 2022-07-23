@@ -14,13 +14,19 @@ class C3Reorder final {
     const char *nmPath_;
     const char *resPath_;
     int runs_;
+    int delta_;
 
 public:
     C3Reorder (const std::string &command,
                const char *nmPath,
                const char *resPath = "out.txt",
-               const int runs = 0)
-        : command_ (command), nmPath_ (nmPath), resPath_ (resPath), runs_ (runs)
+               const int runs = 0,
+               const int delta = 0)
+        : command_ (command),
+          nmPath_ (nmPath),
+          resPath_ (resPath),
+          runs_ (runs),
+          delta_ (delta)
     {
     }
 
