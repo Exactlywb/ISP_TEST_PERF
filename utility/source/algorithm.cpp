@@ -160,6 +160,30 @@ void C3Reorder::run ()
     /* Sort the candidate clusters.  */
     std::sort (clusters.begin (), clusters.end (), HFData::cluster::comparator);
 
+    #if 0
+    for (auto &cluster : clusters) {
+        for (auto function_node : cluster->m_functions) {
+            function_node->aux_ = cluster;
+            function_node->freq_ = 0;
+        }
+    }
+
+    for (auto e : edges_) {
+        if (e->caller->aux_ == e->callee->aux_) {
+            e->caller->freq_ += e->freq;
+        }
+    }
+
+    for (auto cluster : clusters) {
+        auto fnc_cmp = [](HFData::node *a, HFData::node *b) -> bool
+        {
+            //return a->freq_ < b->freq_;
+            return a->freq_ * b->size_ > b->freq_ * a->size_;
+        };
+        std::sort(cluster->m_functions.begin(), cluster->m_functions.end(), fnc_cmp);
+    }
+    #endif
+
     /* Dump function order */
     std::ofstream output (resPath_);
     for (auto &c : clusters) {

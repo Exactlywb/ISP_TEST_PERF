@@ -14,6 +14,7 @@ using namespace std;
 struct Jump {
     std::string from;
     std::string to;
+    int cycles{1};
     friend std::ostream &operator<< (std::ostream &out, const Jump &j)
     {
         out << "{from = " << std::hex << j.from << "; to = " << std::hex << j.to << '}';
@@ -46,7 +47,7 @@ public:
 using pair_string = std::pair<std::string, std::string>;
 using FreqTable = std::map<pair_string, uint64_t>;
 
-std::pair<std::string_view, std::string_view> extract_br (const std::string &str)
+std::tuple<std::string_view, std::string_view, int> extract_br (const std::string &str)
 {
     auto pos = str.find ('/');
     std::string_view fi (str.data (), pos);
@@ -59,7 +60,10 @@ std::pair<std::string_view, std::string_view> extract_br (const std::string &str
     fi = fi.substr (0, fi.find ("+0x"));
     se = se.substr (0, se.find ("+0x"));
 
-    return {fi, se};
+    std::string_view cy(str.data() + str.find_last_of('/') + 1);
+    auto cycles = std::atoi(cy.data());
+
+    return {fi, se, cycles};
 }
 
 std::istream &operator>> (std::istream &in, Trace &trace)
@@ -71,11 +75,12 @@ std::istream &operator>> (std::istream &in, Trace &trace)
         if (comm != "cc1plus")
             continue;
 
-        auto [a, b] = extract_br (jump_event);
+        auto [a, b, cycles] = extract_br (jump_event);
 
         Jump j;
         j.from = a;
         j.to = b;
+        j.cycles = cycles;
         trace.push_back (j);
     }
     return in;
@@ -143,7 +148,7 @@ void update_table (FreqTable &table, const vector<Trace> &traces)
         for (int i = 0; i < tr.size (); i++) {
             auto &j = tr[i];
             if (j.from != "[unknown]" && j.to != "[unknown]") {
-                table[{j.from, j.to}]++;
+                table[{j.from, j.to}] += j.cycles;
             }
         }
     }

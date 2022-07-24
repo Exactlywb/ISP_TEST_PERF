@@ -18,6 +18,7 @@ struct cluster;
 struct node {
     std::string name_;
     std::size_t size_;
+    std::size_t freq_;
     cluster *aux_;
 
     node (const std::string &name, std::size_t size, cluster *aux)
