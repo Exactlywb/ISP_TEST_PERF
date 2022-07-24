@@ -33,5 +33,67 @@ void cluster::merge_to_caller(cluster *caller, cluster *callee) {
     callee->m_callers.clear ();
 }
 
+bool cluster::try_best_reorder()
+{
+    // cant check all permutation
+    if (m_functions.size() > 8 || m_functions.size() <= 1) return false;
+
+
+    std::vector<size_t> dists(m_functions.size());
+    auto dist_for_func = [this, &dists](node *f) -> int{
+        for(int i = 0; i < m_functions.size(); i++) {
+            if(m_functions[i] == f) return dists[i];
+        }
+        return m_size;
+    };
+    auto get_dist_for_call = [&](node *caller, node *callee) -> int {
+        return std::abs(dist_for_func(caller) + (int)caller->size_ / 2 - dist_for_func(callee));
+    };
+    auto get_metic = [&]() -> double {
+        dists[0] = 0;
+        for(int i = 1; i < m_functions.size(); i++) {
+            dists[i] = dists[i - 1] + m_functions[i]->size_;
+        }
+
+        double cur_metric = 0;
+        for (auto node : m_functions) {
+            for (auto e : node->callers) {
+                auto caller = e->caller;
+                auto callee = e->callee;
+                if (callee->aux_ != this || caller->aux_ != this) continue;
+                cur_metric += e->freq / get_dist_for_call(caller, callee);
+            }
+        }
+        return cur_metric;
+    };
+
+    // todo: need move functions with 0 size to the end of array
+
+    double metric = get_metic();
+    std::cerr << "For cluster with n_funcs = " << m_functions.size() << "\n";
+    std::cerr << " :::cur metric::: metric = " << metric << "\n";
+
+    std::sort(m_functions.begin(), m_functions.end());
+    int idx = 0;
+    int answ_prem = 0;
+    do {
+        auto cur_metric = get_metic();
+        if (cur_metric < metric && idx != 0) {
+            metric = cur_metric;
+            answ_prem = idx;
+        }
+        idx++;
+    }while (std::next_permutation(m_functions.begin(), m_functions.end()));
+
+    std::cerr << " :::new metric::: metric = " << metric << "\n";
+
+    std::sort(m_functions.begin(), m_functions.end());
+    while(answ_prem--) {
+        std::next_permutation(m_functions.begin(), m_functions.end());
+    }
+    std::cerr << " :::second try metric::: metric = " << get_metic() << "\n";
+
+    return true;
+}
 
 }

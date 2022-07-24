@@ -160,7 +160,6 @@ void C3Reorder::run ()
     /* Sort the candidate clusters.  */
     std::sort (clusters.begin (), clusters.end (), HFData::cluster::comparator);
 
-    #if 0
     for (auto &cluster : clusters) {
         for (auto function_node : cluster->m_functions) {
             function_node->aux_ = cluster;
@@ -168,12 +167,17 @@ void C3Reorder::run ()
         }
     }
 
+    std::map<std::pair<HFData::node *, HFData::node *>, HFData::edge *> f2e;
     for (auto e : edges_) {
         if (e->caller->aux_ == e->callee->aux_) {
             e->caller->freq_ += e->freq;
+            f2e[{e->caller, e->callee}] = e;
         }
     }
 
+
+
+    #if 0
     for (auto cluster : clusters) {
         auto fnc_cmp = [](HFData::node *a, HFData::node *b) -> bool
         {
@@ -187,6 +191,7 @@ void C3Reorder::run ()
     /* Dump function order */
     std::ofstream output (resPath_);
     for (auto &c : clusters) {
+        c->try_best_reorder();
         c->print(std::cerr, false); /* only_funcs = false */
         c->print(output, true);     /* only_funcs = true */
     }

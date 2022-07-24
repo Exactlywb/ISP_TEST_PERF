@@ -56,6 +56,8 @@ struct cluster {
     std::size_t ID = 0;
 
 
+    bool try_best_reorder();
+
     void add_function_node(node *function_node) {
         m_functions.push_back(function_node);
         m_size += function_node->size_;
@@ -105,7 +107,8 @@ struct cluster {
         stream << "Cluster{\n  size = " << m_size << "\n";
         stream << "  samples = " << m_freq << "\n";
         stream << "  dencity = " << (double)m_freq / m_size << "\n";
-        for (auto node : m_functions) {
+        stream << "  functions = " << m_functions.size() << "\n";
+        if(0)for (auto node : m_functions) {
             stream << "    func.name = " << node->name_ << "\n";
         }
         stream << "}\n";
