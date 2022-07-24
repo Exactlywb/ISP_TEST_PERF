@@ -2,7 +2,16 @@
 
 namespace HFData {
 
+constexpr int CallerDegradeFactor = 8;
+
 void cluster::merge_to_caller(cluster *caller, cluster *callee) {
+
+        const double newDensity = ((double)caller->m_freq + (double)callee->m_freq) / 
+                                  ((double)caller->m_size + (double)callee->m_size);
+        const double predDensity = ((double)caller->m_freq) / ((double)caller->m_size);
+        if (predDensity > newDensity * CallerDegradeFactor)
+                return;
+
     caller->m_size += callee->m_size;
     caller->m_freq += callee->m_freq;
     caller->m_miss += callee->m_miss;
