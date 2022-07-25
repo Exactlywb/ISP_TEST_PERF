@@ -60,8 +60,8 @@ std::tuple<std::string_view, std::string_view, int> extract_br (const std::strin
     fi = fi.substr (0, fi.find ("+0x"));
     se = se.substr (0, se.find ("+0x"));
 
-    std::string_view cy(str.data() + str.find_last_of('/') + 1);
-    auto cycles = std::atoi(cy.data());
+    std::string_view cy (str.data () + str.find_last_of ('/') + 1);
+    auto cycles = std::atoi (cy.data ());
 
     return {fi, se, cycles};
 }

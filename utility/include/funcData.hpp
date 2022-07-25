@@ -4,10 +4,13 @@
 #include <stdint.h>
 
 #include <boost/heap/fibonacci_heap.hpp>
+#include <fstream>
 #include <iostream>
+#include <iterator>
+#include <random>
+#include <tuple>
 #include <unordered_map>
 #include <vector>
-#include <tuple>
 
 namespace HFData {
 
@@ -36,17 +39,15 @@ struct edge {
     std::size_t freq = 0;
     std::size_t miss = 0;
 
-    std::tuple<cluster *, cluster *, std::size_t, std::size_t> unpack_data() const {
+    std::tuple<cluster *, cluster *, std::size_t, std::size_t> unpack_data () const
+    {
         return {caller->aux_, callee->aux_, freq, miss};
     }
 };
 
-
-
 struct cluster_edge;
 struct cluster {
-
-    cluster() {} 
+    cluster () {}
 
     std::vector<node *> m_functions;
     std::unordered_map<cluster *, cluster_edge *> m_callers;
@@ -55,18 +56,18 @@ struct cluster {
     std::size_t m_miss = 0;
     std::size_t ID = 0;
 
+    bool try_best_reorder ();
 
-    bool try_best_reorder();
-
-    void add_function_node(node *function_node) {
-        m_functions.push_back(function_node);
+    void add_function_node (node *function_node)
+    {
+        m_functions.push_back (function_node);
         m_size += function_node->size_;
     }
-    void drop_all_functions() {
-        m_functions.clear();
-        m_functions.shrink_to_fit();
+    void drop_all_functions ()
+    {
+        m_functions.clear ();
+        m_functions.shrink_to_fit ();
     }
-
 
     void put (cluster *caller, cluster_edge *edge) { m_callers[caller] = edge; }
     cluster_edge *get (cluster *caller)
@@ -75,27 +76,30 @@ struct cluster {
         return search_it == m_callers.end () ? nullptr : search_it->second;
     }
 
-    void reset_metrics() 
+    void reset_metrics ()
     {
         m_size = 0;
         m_freq = 0;
         m_miss = 0;
-        m_callers.clear();
+        m_callers.clear ();
     }
 
-    static void merge_to_caller(cluster *caller, cluster *callee);
-    static bool comparator(cluster *lhs, cluster *rhs) 
+    bool try_simulated_annealing ();
+    double evaluate_energy (const std::vector<int> &state);
+
+    static void merge_to_caller (cluster *caller, cluster *callee);
+    static bool comparator (cluster *lhs, cluster *rhs)
     {
         constexpr double MAX_DENSITY = 1e+8;
         double da = lhs->m_size == 0 ? MAX_DENSITY : (double)lhs->m_freq / (double)lhs->m_size;
         double db = rhs->m_size == 0 ? MAX_DENSITY : (double)rhs->m_freq / (double)rhs->m_size;
-        if (std::abs(da - db) < 1e-5) 
+        if (std::abs (da - db) < 1e-5)
             return lhs->ID < rhs->ID;
         return da < db;
     }
 
-    template<typename StreamT>
-    void print(StreamT &stream, bool only_funcs)
+    template <typename StreamT>
+    void print (StreamT &stream, bool only_funcs)
     {
         if (only_funcs) {
             for (auto node : m_functions)
@@ -103,17 +107,18 @@ struct cluster {
             return;
         }
 
-        if (m_functions.empty()) return;
+        if (m_functions.empty ())
+            return;
         stream << "Cluster{\n  size = " << m_size << "\n";
         stream << "  samples = " << m_freq << "\n";
         stream << "  dencity = " << (double)m_freq / m_size << "\n";
-        stream << "  functions = " << m_functions.size() << "\n";
-        if(0)for (auto node : m_functions) {
-            stream << "    func.name = " << node->name_ << "\n";
-        }
+        stream << "  functions = " << m_functions.size () << "\n";
+        if (0)
+            for (auto node : m_functions) {
+                stream << "    func.name = " << node->name_ << "\n";
+            }
         stream << "}\n";
     }
-
 };
 
 /* Cluster edge is an oriented edge in between two clusters.  */
@@ -140,16 +145,21 @@ struct cluster_edge {
         return (double)m_count * new_dencity / old_dencity;
     }
 
-    double get_cost () const { return (double)m_count/(1 + m_callee->m_size + m_caller->m_size); }
-    static bool comparator(cluster_edge *lhs, cluster_edge *rhs) 
+    double get_cost () const
     {
-        auto cl = lhs->get_cost();
-        auto cr = rhs->get_cost();
-        if (cl != cr) return cl < cr;
+        return (double)m_count / (1 + m_callee->m_size + m_caller->m_size);
+    }
+    static bool comparator (cluster_edge *lhs, cluster_edge *rhs)
+    {
+        auto cl = lhs->get_cost ();
+        auto cr = rhs->get_cost ();
+        if (cl != cr)
+            return cl < cr;
 
         auto sl = lhs->m_callee->m_size + lhs->m_caller->m_size;
         auto sr = rhs->m_callee->m_size + rhs->m_caller->m_size;
-        if (sl != sr) return sl > sr; // prefer small blocks
+        if (sl != sr)
+            return sl > sr;  // prefer small blocks
 
         return lhs->ID < rhs->ID;
     }

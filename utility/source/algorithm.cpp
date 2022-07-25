@@ -1,8 +1,8 @@
 #include "algorithm.hpp"
 
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
-#include <algorithm>
 #include <vector>
 
 using pair_string = std::pair<std::string, std::string>;
@@ -97,10 +97,10 @@ void C3Reorder::run ()
     build_cg ();
 
     /* Create a cluster for each function, and accociate function to cluster.  */
-    std::vector<HFData::cluster *> clusters(nodes_.size());
-    for (std::size_t i = 0; i < clusters.size(); i++) {
-        clusters[i] = new HFData::cluster();
-        clusters[i]->add_function_node(&nodes_[i]);
+    std::vector<HFData::cluster *> clusters (nodes_.size ());
+    for (std::size_t i = 0; i < clusters.size (); i++) {
+        clusters[i] = new HFData::cluster ();
+        clusters[i]->add_function_node (&nodes_[i]);
         clusters[i]->ID = i;
         nodes_[i].aux_ = clusters[i];
     }
@@ -110,7 +110,7 @@ void C3Reorder::run ()
     for (auto &cluster : clusters) {
         for (auto function_node : cluster->m_functions) {
             for (auto &edge : function_node->callers) {
-                auto [caller_cluster, callee_cluster, freq, miss] = edge->unpack_data();
+                auto [caller_cluster, callee_cluster, freq, miss] = edge->unpack_data ();
 
                 caller_cluster->m_freq += freq;
                 caller_cluster->m_miss += miss;
@@ -119,10 +119,12 @@ void C3Reorder::run ()
                 if (cedge != nullptr) {
                     cedge->m_count += freq;
                     cedge->m_miss += miss;
-                } else {
-                    auto cedge = new HFData::cluster_edge (caller_cluster, callee_cluster, freq, miss);
+                }
+                else {
+                    auto cedge =
+                        new HFData::cluster_edge (caller_cluster, callee_cluster, freq, miss);
                     cedges.push_back (cedge);
-                    cedge->ID = cedges.size();
+                    cedge->ID = cedges.size ();
                     callee_cluster->put (caller_cluster, cedge);
                 }
             }
@@ -131,18 +133,18 @@ void C3Reorder::run ()
 
     /* Now insert all created edges into a heap.  */
     auto &heap = cedges;
-    auto extract_max = [&heap]() {
+    auto extract_max = [&heap] () {
         auto &compare = HFData::cluster_edge::comparator;
-        auto max_it = std::max_element(heap.begin (), heap.end (), compare);
-        std::iter_swap(max_it, std::prev(heap.end()));
-        auto cedge = heap.back();
-        heap.pop_back();
+        auto max_it = std::max_element (heap.begin (), heap.end (), compare);
+        std::iter_swap (max_it, std::prev (heap.end ()));
+        auto cedge = heap.back ();
+        heap.pop_back ();
         return cedge;
     };
 
     /* Main loop */
     while (!heap.empty ()) {
-        auto cedge = extract_max();
+        auto cedge = extract_max ();
 
         auto caller = cedge->m_caller;
         auto callee = cedge->m_callee;
@@ -153,9 +155,8 @@ void C3Reorder::run ()
         if (caller->m_size + callee->m_size > HFData::C3_CLUSTER_THRESHOLD)
             continue;
 
-        HFData::cluster::merge_to_caller(caller, callee);
+        HFData::cluster::merge_to_caller (caller, callee);
     }
-
 
     /* Sort the candidate clusters.  */
     std::sort (clusters.begin (), clusters.end (), HFData::cluster::comparator);
@@ -175,9 +176,7 @@ void C3Reorder::run ()
         }
     }
 
-
-
-    #if 0
+#if 0
     for (auto cluster : clusters) {
         auto fnc_cmp = [](HFData::node *a, HFData::node *b) -> bool
         {
@@ -186,14 +185,14 @@ void C3Reorder::run ()
         };
         std::sort(cluster->m_functions.begin(), cluster->m_functions.end(), fnc_cmp);
     }
-    #endif
+#endif
 
     /* Dump function order */
     std::ofstream output (resPath_);
     for (auto &c : clusters) {
-        c->try_best_reorder();
-        c->print(std::cerr, false); /* only_funcs = false */
-        c->print(output, true);     /* only_funcs = true */
+        c->try_best_reorder ();
+        c->print (std::cerr, false); /* only_funcs = false */
+        c->print (output, true);     /* only_funcs = true */
     }
 
     /* Release memory */
