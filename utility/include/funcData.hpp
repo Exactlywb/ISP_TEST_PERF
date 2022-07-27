@@ -56,8 +56,6 @@ struct cluster {
     std::size_t m_miss = 0;
     std::size_t ID = 0;
 
-    bool try_best_reorder ();
-
     void add_function_node (node *function_node)
     {
         m_functions.push_back (function_node);

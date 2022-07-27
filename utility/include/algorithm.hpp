@@ -6,6 +6,7 @@
 #include "funcData.hpp"
 #include "nmParser.hpp"
 #include "perfParser.hpp"
+#include "algos.hpp"
 
 namespace FunctionReordering {
 
@@ -28,11 +29,14 @@ public:
           runs_ (runs),
           delta_ (delta)
     {
+        local_reordering.push_back(new Percise());
     }
 
     void run ();
 
 private:
+    std::vector<ReorderAlorithm *> local_reordering;
+
     std::vector<perfParser::LbrSample> tlbMissesSamples_;
     std::vector<perfParser::LbrSample> cyclesSample_;
 

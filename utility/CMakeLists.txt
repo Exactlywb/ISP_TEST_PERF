@@ -8,6 +8,9 @@ set (SOURCES
     source/nmParser.cpp
     source/subprocess.cpp
     source/FunctionData.cpp
+
+    source/algos/annealing.cpp
+    source/algos/percise.cpp
 )
 
 set (COMPILE_SETTINGS -O0 -g -Wall -Wextra -Wpedantic)

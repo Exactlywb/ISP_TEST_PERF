@@ -190,7 +190,10 @@ void C3Reorder::run ()
     /* Dump function order */
     std::ofstream output (resPath_);
     for (auto &c : clusters) {
-        c->try_best_reorder ();
+        bool applied = false;
+        for (unsigned i = 0; !applied && i < local_reordering.size(); i++) {
+            applied |= local_reordering[i]->runOncluster(*c);
+        }
         c->print (std::cerr, false); /* only_funcs = false */
         c->print (output, true);     /* only_funcs = true */
     }
