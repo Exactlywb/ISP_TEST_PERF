@@ -1,5 +1,8 @@
 #include <funcData.hpp>
 
+std::vector<long long> graps(std::vector<std::vector<long long>> weigth);
+
+
 namespace HFData {
 
 void cluster::merge_to_caller (cluster *caller, cluster *callee)
@@ -105,7 +108,7 @@ bool MakeTransit (const double probability)
 
 double DecreaseTemperature (const double initT, const int iteration)
 {
-    constexpr double coef = 0.1;
+    constexpr double coef = 1.0;
     return (initT * coef) / iteration;
 }
 
@@ -146,7 +149,7 @@ double cluster::evaluate_energy (const std::vector<int> &state)
             auto callee = e->callee;
             if (callee->aux_ != this || caller->aux_ != this)
                 continue;
-            cur_metric += e->freq * get_dist_for_call (caller, callee);
+            cur_metric += e->freq * (get_dist_for_call (caller, callee));
         }
     }
     return cur_metric;
@@ -164,7 +167,10 @@ bool cluster::try_simulated_annealing ()
     double currentEnergy = evaluate_energy (state);  // start energy
     constexpr double initT = 10.;                    // initial temperature
     double curT = initT;                             // start temperature
-    constexpr double minT = 0.01;                    // minimum temperature
+    constexpr double minT = 0.0001;                    // minimum temperature
+
+    std::vector<int> best_state(fSize);
+    double best_score = 1e+15;
 
     for (int i = 0; i < 100000; ++i) {  // just in case, we limit the number of iterations
 
@@ -175,6 +181,9 @@ bool cluster::try_simulated_annealing ()
         if (candidateEnergy < currentEnergy) {
             currentEnergy = candidateEnergy;
             state = stateCandidate;
+
+            best_score = candidateEnergy;
+            best_state = stateCandidate;
         }
         else {
             auto probability =
@@ -189,6 +198,10 @@ bool cluster::try_simulated_annealing ()
         curT = DecreaseTemperature (initT, i);
         if (curT < minT)
             break;
+    }
+
+    if (best_score < currentEnergy) {
+        state = best_state;
     }
 
     // Now we have the finish state and we have to make function reordering in cluster
@@ -209,14 +222,6 @@ bool cluster::try_simulated_annealing ()
 
 bool cluster::try_best_reorder ()
 {
-    // cant check all permutation
-    if (m_functions.size () > 8 || m_functions.size () <= 1) {
-        if (m_functions.size () <= 1)
-            return false;
-        else
-            return try_simulated_annealing ();
-    }
-
     std::vector<size_t> dists (m_functions.size ());
     auto dist_for_func = [this, &dists] (node *f) -> int {
         for (std::size_t i = 0; i < m_functions.size (); i++) {
@@ -247,6 +252,13 @@ bool cluster::try_best_reorder ()
         }
         return cur_metric;
     };
+
+    if (m_functions.size () > 8 || m_functions.size () <= 1) {
+        if (m_functions.size () <= 1)
+            return false;
+        else
+            return try_simulated_annealing ();
+    }
 
     // todo: need move functions with 0 size to the end of array
 
