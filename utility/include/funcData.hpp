@@ -82,8 +82,21 @@ struct cluster {
         m_callers.clear ();
     }
 
-    bool try_simulated_annealing ();
     double evaluate_energy (const std::vector<int> &state);
+
+    template <typename FuncT>
+    void visit_edges (FuncT F) 
+    {
+        for (auto node : m_functions) {
+        for (auto e : node->callers) {
+            auto caller = e->caller;
+            auto callee = e->callee;
+            if (callee->aux_ != this || caller->aux_ != this)
+                continue;
+            F(e);
+        }
+    }
+    }
 
     static void merge_to_caller (cluster *caller, cluster *callee);
     static bool comparator (cluster *lhs, cluster *rhs)

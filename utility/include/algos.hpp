@@ -13,3 +13,7 @@ struct Percise final : public ReorderAlorithm{
 struct Annealing final : public ReorderAlorithm{
     bool runOncluster(HFData::cluster &cluster) override;
 };
+
+struct QAP final : public ReorderAlorithm{
+    bool runOncluster(HFData::cluster &cluster) override;
+};

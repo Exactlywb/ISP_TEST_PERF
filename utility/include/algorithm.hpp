@@ -30,6 +30,7 @@ public:
           delta_ (delta)
     {
         local_reordering.push_back(new Percise());
+        local_reordering.push_back(new QAP());
     }
 
     void run ();

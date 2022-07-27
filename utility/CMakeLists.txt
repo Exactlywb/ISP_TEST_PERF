@@ -10,6 +10,7 @@ set (SOURCES
     source/FunctionData.cpp
 
     source/algos/annealing.cpp
+    source/algos/QAP.cpp
     source/algos/percise.cpp
 )
 
