@@ -4,13 +4,12 @@
  * https://gcc.gnu.org/legacy-ml/gcc-patches/2019-09/msg01142.html
  * */
 
-#include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 #include <fstream>
 #include <iostream>
 #include <tuple>
 
-#include "algorithm.hpp"
+#include "Algorithm.hpp"
 
 static std::tuple<std::string, std::string, std::string, int, int>
 CheckInput (  // command, readelf, output, runs number
@@ -60,7 +59,8 @@ CheckInput (  // command, readelf, output, runs number
 
 /*  The input format is
 
->  ./c3_utility nm.file resultName
+>  ./c3_utility --readelf=nm.file --output=order.sorted --number=128 --command="g++ -w
+tramp3d-v4.cpp -o /dev/null"
 
 */
 int main (int argc, char **argv)

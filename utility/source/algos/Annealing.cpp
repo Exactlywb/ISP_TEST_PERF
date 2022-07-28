@@ -1,5 +1,4 @@
-#include "algos.hpp"
-
+#include "Algos.hpp"
 
 namespace {
 
@@ -76,19 +75,18 @@ bool MakeTransit (const double probability)
     */
 }
 
-
-void Reorder (std::vector<HFData::node *> &m_functions, const std::vector<int> &state)
+void Reorder (std::vector<HFData::node *> &functions_, const std::vector<int> &state)
 {
-    std::vector<HFData::node *> copy_functions = m_functions;
+    std::vector<HFData::node *> copy_functions = functions_;
     for (auto ind : state)
-        m_functions[ind] = copy_functions[ind];
+        functions_[ind] = copy_functions[ind];
 }
 
 }  // namespace
 
 bool Annealing::runOncluster (HFData::cluster &cluster)
 {
-    auto &functions = cluster.m_functions;
+    auto &functions = cluster.functions_;
 
     std::ofstream fp ("annealing.dump", std::ios_base::app);
 
@@ -98,11 +96,11 @@ bool Annealing::runOncluster (HFData::cluster &cluster)
     fp << "Before cost = " << cluster.evaluate_energy (state) << ", " << fSize << std::endl;
 
     double currentEnergy = cluster.evaluate_energy (state);  // start energy
-    constexpr double initT = 10.;                    // initial temperature
-    double curT = initT;                             // start temperature
-    constexpr double minT = 0.0001;                  // minimum temperature
+    constexpr double initT = 10.;                            // initial temperature
+    double curT = initT;                                     // start temperature
+    constexpr double minT = 0.0001;                          // minimum temperature
 
-    std::vector<int> best_state(fSize);
+    std::vector<int> best_state (fSize);
     double best_score = 1e+15;
 
     for (int i = 0; i < 100000; ++i) {  // just in case, we limit the number of iterations
@@ -152,5 +150,3 @@ bool Annealing::runOncluster (HFData::cluster &cluster)
 
     return true;
 }
-
-

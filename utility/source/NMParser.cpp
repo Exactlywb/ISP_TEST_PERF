@@ -1,6 +1,9 @@
-#include "nmParser.hpp"
+#include "NMParser.hpp"
 
-namespace nmParser {
+#include <boost/algorithm/string.hpp>
+#include <boost/lexical_cast.hpp>
+
+namespace NMParser {
 
 namespace {
 
@@ -18,30 +21,31 @@ public:
     }
 };
 
-void parseCurNMStr (std::vector<nmFuncInfo> &nmFunctionInfo, const std::string &str)
+void parseCurNMStr (std::vector<FuncInfo> &nmFunctionInfo, const std::string &str)
 {
-    uint64_t count = 1;
     std::vector<std::string> noWS;
     boost::split (noWS, str, boost::is_any_of (" "), boost::token_compress_on);
 
-    if (boost::starts_with (noWS[2], "0x"))
-        nmFunctionInfo.push_back ({noWS[7],
-                                   boost::lexical_cast<size_t_from_hex> (noWS[2]),
-                                   boost::lexical_cast<size_t_from_hex> (noWS[1]),
-                                   count,
-                                   nullptr});
-    else
-        nmFunctionInfo.push_back ({noWS[7],
-                                   boost::lexical_cast<std::size_t> (noWS[2]),
-                                   boost::lexical_cast<size_t_from_hex> (noWS[1]),
-                                   count,
-                                   nullptr});
-    count++;
+    auto &name_str = noWS[7];
+    auto &size_str = noWS[2];
+    auto &addr_str = noWS[1];
+
+    uint64_t size = 0;
+    if (size_str.starts_with ("0x")) {
+        size = boost::lexical_cast<size_t_from_hex> (size_str);
+    }
+    else {
+        size = boost::lexical_cast<std::size_t> (size_str);
+    }
+
+    uint64_t addr = boost::lexical_cast<size_t_from_hex> (addr_str);
+
+    nmFunctionInfo.emplace_back (std::move (name_str), size, addr, 0);
 }
 
 }  // namespace
 
-void parse_nm_data (std::vector<nmFuncInfo> &nmFunctionInfo, const char *nmPath)
+void parse_nm_data (std::vector<FuncInfo> &nmFunctionInfo, const char *nmPath)
 {
     TraceStream traceReader (nmPath);
 
@@ -59,7 +63,6 @@ void parse_nm_data (std::vector<nmFuncInfo> &nmFunctionInfo, const char *nmPath)
 
     std::cout << "Before removing dublicates size = " << nmFunctionInfo.size () << "\n";
     // remove copies
-    using FuncInfo = nmFuncInfo;
     auto &FI = nmFunctionInfo;
     std::sort (FI.begin (), FI.end (), [] (const FuncInfo &a, const FuncInfo &b) {
         return a.interal_addr_ < b.interal_addr_;
@@ -72,4 +75,4 @@ void parse_nm_data (std::vector<nmFuncInfo> &nmFunctionInfo, const char *nmPath)
     std::cout << "After removing dublicates size = " << nmFunctionInfo.size () << "\n";
 }
 
-}  // namespace nmParser
+}  // namespace NMParser

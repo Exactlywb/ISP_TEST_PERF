@@ -3,10 +3,10 @@
 
 #include <fstream>
 
-#include "funcData.hpp"
-#include "nmParser.hpp"
-#include "perfParser.hpp"
-#include "algos.hpp"
+#include "Algos.hpp"
+#include "FuncData.hpp"
+#include "NMParser.hpp"
+#include "PerfParser.hpp"
 
 namespace FunctionReordering {
 
@@ -29,19 +29,20 @@ public:
           runs_ (runs),
           delta_ (delta)
     {
-        local_reordering.push_back(new Percise());
-        local_reordering.push_back(new QAP());
+        local_reordering_.push_back (new Percise ());
+        local_reordering_.push_back (new Annealing ());
+        local_reordering_.push_back (new QAP ());
     }
 
     void run ();
 
 private:
-    std::vector<ReorderAlorithm *> local_reordering;
+    std::vector<ReorderAlorithm *> local_reordering_;
 
     std::vector<perfParser::LbrSample> tlbMissesSamples_;
     std::vector<perfParser::LbrSample> cyclesSample_;
 
-    std::vector<nmParser::nmFuncInfo> nmFunctions_;
+    std::vector<NMParser::FuncInfo> nmFunctions_;
 
     std::vector<HFData::edge *> edges_;
     std::vector<HFData::node> nodes_;

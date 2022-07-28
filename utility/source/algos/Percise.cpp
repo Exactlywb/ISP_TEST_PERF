@@ -1,16 +1,19 @@
-#include "algos.hpp"
+#include "Algos.hpp"
 
 using HFData::cluster_edge;
 using HFData::node;
 
 // This file implements percise algorithm for metric minimization problem
 
-bool Percise::runOncluster(HFData::cluster &cluster)
+bool Percise::runOncluster (HFData::cluster &cluster)
 {
-    auto &functions = cluster.m_functions;
+    auto &functions = cluster.functions_;
     const auto size = cluster.m_size;
 
-    if (functions.size() <= 1 || functions.size() >= 7) return false;
+    if (functions.size () <= 1 )
+        return true;
+    if (functions.size () >= 7)
+        return false;
 
     // todo: need move functions with 0 size to the end of array
 
@@ -34,7 +37,7 @@ bool Percise::runOncluster(HFData::cluster &cluster)
 
         double cur_metric = 0;
         for (auto node : functions) {
-            for (auto e : node->callers) {
+            for (auto e : node->callers_) {
                 auto caller = e->caller;
                 auto callee = e->callee;
                 if (callee->aux_ != &cluster || caller->aux_ != &cluster)

@@ -1,4 +1,4 @@
-#include "algorithm.hpp"
+#include "Algorithm.hpp"
 
 #include <algorithm>
 #include <filesystem>
@@ -85,13 +85,13 @@ void C3Reorder::build_cg ()
 
     /* After each edges was created, attach it no nodes */
     for (auto e : edges_) {
-        e->callee->callers.push_back (e);
+        e->callee->callers_.push_back (e);
     }
 }
 
 void C3Reorder::run ()
 {
-    nmParser::parse_nm_data (nmFunctions_, nmPath_);
+    NMParser::parse_nm_data (nmFunctions_, nmPath_);
 
     /* Build cg from perf data */
     build_cg ();
@@ -108,17 +108,17 @@ void C3Reorder::run ()
     /* Insert edges between clusters that have a profile. */
     std::vector<HFData::cluster_edge *> cedges;
     for (auto &cluster : clusters) {
-        for (auto function_node : cluster->m_functions) {
-            for (auto &edge : function_node->callers) {
+        for (auto function_node : cluster->functions_) {
+            for (auto &edge : function_node->callers_) {
                 auto [caller_cluster, callee_cluster, freq, miss] = edge->unpack_data ();
 
-                caller_cluster->m_freq += freq;
-                caller_cluster->m_miss += miss;
+                caller_cluster->freq_ += freq;
+                caller_cluster->misses_ += miss;
 
                 auto cedge = callee_cluster->get (caller_cluster);
                 if (cedge != nullptr) {
                     cedge->m_count += freq;
-                    cedge->m_miss += miss;
+                    cedge->misses_ += miss;
                 }
                 else {
                     auto cedge =
@@ -162,7 +162,7 @@ void C3Reorder::run ()
     std::sort (clusters.begin (), clusters.end (), HFData::cluster::comparator);
 
     for (auto &cluster : clusters) {
-        for (auto function_node : cluster->m_functions) {
+        for (auto function_node : cluster->functions_) {
             function_node->aux_ = cluster;
             function_node->freq_ = 0;
         }
@@ -183,7 +183,7 @@ void C3Reorder::run ()
             //return a->freq_ < b->freq_;
             return a->freq_ * b->size_ > b->freq_ * a->size_;
         };
-        std::sort(cluster->m_functions.begin(), cluster->m_functions.end(), fnc_cmp);
+        std::sort(cluster->functions_.begin(), cluster->functions_.end(), fnc_cmp);
     }
 #endif
 
@@ -191,8 +191,8 @@ void C3Reorder::run ()
     std::ofstream output (resPath_);
     for (auto &c : clusters) {
         bool applied = false;
-        for (unsigned i = 0; !applied && i < local_reordering.size(); i++) {
-            applied |= local_reordering[i]->runOncluster(*c);
+        for (unsigned i = 0; !applied && i < local_reordering_.size (); i++) {
+            applied |= local_reordering_[i]->runOncluster (*c);
         }
         c->print (std::cerr, false); /* only_funcs = false */
         c->print (output, true);     /* only_funcs = true */

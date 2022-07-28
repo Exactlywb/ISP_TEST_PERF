@@ -3,15 +3,15 @@ project (c3_utility)
 
 set (SOURCES
     source/main.cpp
-    source/algorithm.cpp
-    source/perfParser.cpp
-    source/nmParser.cpp
-    source/subprocess.cpp
+    source/Algorithm.cpp
+    source/PerfParser.cpp
+    source/NMParser.cpp
+    source/Subprocess.cpp
     source/FunctionData.cpp
 
-    source/algos/annealing.cpp
+    source/algos/Annealing.cpp
     source/algos/QAP.cpp
-    source/algos/percise.cpp
+    source/algos/Percise.cpp
 )
 
 set (COMPILE_SETTINGS -O0 -g -Wall -Wextra -Wpedantic)

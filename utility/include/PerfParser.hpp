@@ -11,7 +11,7 @@
 #include <tuple>
 #include <unordered_map>
 
-#include "traceReader.hpp"
+#include "TraceReader.hpp"
 
 namespace perfParser {
 
