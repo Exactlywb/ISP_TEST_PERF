@@ -5,6 +5,7 @@
 
 #include "Algos.hpp"
 #include "FuncData.hpp"
+#include "Metrics.hpp"
 #include "NMParser.hpp"
 #include "PerfParser.hpp"
 
@@ -16,7 +17,7 @@ class C3Reorder final {
     const char *resPath_;
     int runs_;
     int delta_;
-
+    //! TODO write destructor
 public:
     C3Reorder (const std::string &command,
                const char *nmPath,
@@ -28,16 +29,19 @@ public:
           resPath_ (resPath),
           runs_ (runs),
           delta_ (delta)
+    //   cluster_reordering_ (new GlobalAlgorithms::Annealing<RegularClusterMetric> ())
     {
-        local_reordering_.push_back (new Percise ());
-        local_reordering_.push_back (new Annealing ());
-        local_reordering_.push_back (new QAP ());
+        local_reordering_.push_back (new LocalAlgorithms::Percise ());
+        local_reordering_.push_back (new LocalAlgorithms::Annealing<RegularFunctionMetric> ());
+        local_reordering_.push_back (new LocalAlgorithms::QAP ());
     }
 
     void run ();
 
 private:
-    std::vector<ReorderAlorithm *> local_reordering_;
+    std::vector<LocalAlgorithms::ReorderAlgorithm *> local_reordering_;
+    GlobalAlgorithms::ReorderAlgorithm
+        *cluster_reordering_; /* Let's try another cluster sort.  */
 
     std::vector<perfParser::LbrSample> tlbMissesSamples_;
     std::vector<perfParser::LbrSample> cyclesSample_;

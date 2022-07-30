@@ -159,7 +159,12 @@ void C3Reorder::run ()
     }
 
     /* Sort the candidate clusters.  */
+#if 0
     std::sort (clusters.begin (), clusters.end (), HFData::cluster::comparator);
+#endif
+
+    /* Let's remake cluster sort.  */
+    cluster_reordering_->run (clusters);
 
     for (auto &cluster : clusters) {
         for (auto function_node : cluster->functions_) {
@@ -192,7 +197,7 @@ void C3Reorder::run ()
     for (auto &c : clusters) {
         bool applied = false;
         for (unsigned i = 0; !applied && i < local_reordering_.size (); i++) {
-            applied |= local_reordering_[i]->runOncluster (*c);
+            applied |= local_reordering_[i]->run (*c);
         }
         c->print (std::cerr, false); /* only_funcs = false */
         c->print (output, true);     /* only_funcs = true */

@@ -1,7 +1,6 @@
 
 /* This file from another repository */
 
-
 /*
 
 Iterative Local Search: Quadratic Assignment Problem

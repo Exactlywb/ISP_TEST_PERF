@@ -80,19 +80,25 @@ struct cluster {
         callers_.clear ();
     }
 
-    double evaluate_energy (const std::vector<int> &perm) const;
-
     static void merge_to_caller (cluster *caller, cluster *callee);
 
+#if 0
     static bool comparator (cluster *lhs, cluster *rhs)
     {
         constexpr double MAX_DENSITY = 1e+8;
         double da = lhs->m_size == 0 ? MAX_DENSITY : (double)lhs->freq_ / (double)lhs->m_size;
         double db = rhs->m_size == 0 ? MAX_DENSITY : (double)rhs->freq_ / (double)rhs->m_size;
-        if (std::abs (da - db) < 1e-5)
-            return lhs->ID < rhs->ID;
-        return da < db;
+        for (auto node : functions_) {
+            for (auto e : node->callers_) {
+                auto caller = e->caller;
+                auto callee = e->callee;
+                if (callee->aux_ != this || caller->aux_ != this)
+                    continue;
+                F (e);
+            }
+        }
     }
+#endif
 
     template <typename FuncT>
     void visit_edges (FuncT F)

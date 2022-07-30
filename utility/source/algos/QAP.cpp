@@ -2,7 +2,7 @@
 
 #include "Algos.hpp"
 
-bool QAP::runOncluster (HFData::cluster &cluster)
+bool LocalAlgorithms::QAP::run (HFData::cluster &cluster)
 {
     auto &functions = cluster.functions_;
     const auto size = functions.size ();

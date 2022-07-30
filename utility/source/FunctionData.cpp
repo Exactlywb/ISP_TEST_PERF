@@ -46,38 +46,4 @@ void cluster::merge_to_caller (cluster *caller, cluster *callee)
     callee->callers_.clear ();
 }
 
-double cluster::evaluate_energy (const std::vector<int> &perm) const
-{  //! TODO check it
-    std::vector<size_t> dists (functions_.size ());
-    auto dist_for_func = [this, &dists, perm] (node *f) -> int {
-        for (std::size_t i = 0; i < functions_.size (); i++) {
-            if (functions_[perm[i]] == f)
-                return dists[perm[i]];
-        }
-        return m_size;
-    };
-
-    auto get_dist_for_call = [&] (node *caller, node *callee) -> int {
-        return std::abs (dist_for_func (caller) + (int)caller->size_ / 2 -
-                         dist_for_func (callee));
-    };
-
-    dists[perm[0]] = 0;
-    for (std::size_t i = 1; i < functions_.size (); i++) {
-        dists[perm[i]] = dists[perm[i - 1]] + functions_[perm[i]]->size_;
-    }
-
-    double cur_metric = 0;
-    for (auto node : functions_) {
-        for (auto e : node->callers_) {
-            auto caller = e->caller;
-            auto callee = e->callee;
-            if (callee->aux_ != this || caller->aux_ != this)
-                continue;
-            cur_metric += e->freq * (get_dist_for_call (caller, callee));
-        }
-    }
-    return cur_metric;
-}
-
 }  // namespace HFData
