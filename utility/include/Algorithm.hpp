@@ -28,8 +28,8 @@ public:
           nmPath_ (nmPath),
           resPath_ (resPath),
           runs_ (runs),
-          delta_ (delta)
-    //   cluster_reordering_ (new GlobalAlgorithms::Annealing<RegularClusterMetric> ())
+          delta_ (delta),
+          cluster_reordering_ (new GlobalAlgorithms::Annealing<RegularClusterMetric> ())
     {
         local_reordering_.push_back (new LocalAlgorithms::Percise ());
         local_reordering_.push_back (new LocalAlgorithms::Annealing<RegularFunctionMetric> ());

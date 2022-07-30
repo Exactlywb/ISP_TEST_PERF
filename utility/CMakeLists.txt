@@ -12,6 +12,8 @@ set (SOURCES
     source/algos/Annealing.cpp
     source/algos/QAP.cpp
     source/algos/Percise.cpp
+
+    source/Metrics.cpp
 )
 
 set (COMPILE_SETTINGS -O0 -g -Wall -Wextra -Wpedantic)
