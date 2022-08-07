@@ -13,6 +13,11 @@ struct FuncInfo {
     uint64_t size_;
     uint64_t interal_addr_;
     uint64_t ID;
+
+    FuncInfo (const std::string &name, uint64_t size, uint64_t interal_addr, uint64_t id)
+        : name_ (name), size_ (size), interal_addr_ (interal_addr), ID (id)
+    {
+    }
 };
 
 void parse_nm_data (std::vector<FuncInfo> &nmFunctionInfo, const char *nmPath);

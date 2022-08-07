@@ -198,6 +198,26 @@ void C3Reorder::run ()
         c->print (output, true);     /* only_funcs = true */
     }
 
+    /* Let's see how many tlb misses for function calls in every cluster.  */
+    for (auto &c : clusters) {
+        for (auto node : c->functions_) {
+            for (auto e : node->callers_) {
+                auto caller = e->caller;
+                auto callee = e->callee;
+
+                /* We take edges only if they're in cluster.  */
+                if (callee->aux_ != c || caller->aux_ != c)
+                    continue;
+
+                for (auto &tlbSample : tlbMissesSamples_) {
+                    if (tlbSample.callerName_ == caller->name_ &&
+                        tlbSample.calleeName_ == callee->name_)
+                        c->misses_++;
+                }
+            }
+        }
+    }
+
     /* Release memory */
     for (auto &it : clusters)
         delete it;

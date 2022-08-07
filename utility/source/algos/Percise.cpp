@@ -10,7 +10,7 @@ bool Percise::runOncluster (HFData::cluster &cluster)
     auto &functions = cluster.functions_;
     const auto size = cluster.m_size;
 
-    if (functions.size () <= 1 )
+    if (functions.size () <= 1)
         return true;
     if (functions.size () >= 7)
         return false;
